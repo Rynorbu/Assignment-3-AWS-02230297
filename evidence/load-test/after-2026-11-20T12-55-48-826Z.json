@@ -1,0 +1,33 @@
+{
+  "label": "after",
+  "startedAt": "2026-11-20T12:55:48.826Z",
+  "finishedAt": "2026-11-20T13:06:19.560Z",
+  "config": {
+    "label": "after",
+    "url": "https://d2tat6wr6b099o.cloudfront.net",
+    "region": "ap-southeast-1",
+    "examId": "64bd5ba8-04f0-4abc-a634-7891448ae697",
+    "domain": "example.com",
+    "accounts": 200,
+    "students": 3000,
+    "ramp": 300,
+    "hold": 300,
+    "autosave": 30
+  },
+  "requests": 47273,
+  "byType": {
+    "start": 3000,
+    "autosave": 44273
+  },
+  "statuses": {
+    "200": 47273
+  },
+  "successRatePct": 100,
+  "latencyMs": {
+    "p50": 343,
+    "p95": 885,
+    "p99": 1677,
+    "max": 14236
+  },
+  "peakRps": 106.5
+}

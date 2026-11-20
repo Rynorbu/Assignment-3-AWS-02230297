@@ -1,0 +1,4 @@
+2026-11-20T14:40:01Z worker stopped (reserved concurrency 0)
+2026-11-20T14:42:18Z 50 messages queued; depth=50
+2026-11-20T14:45:40Z worker restored
+Backlog drained 96 s after restore; DLQ depth=0

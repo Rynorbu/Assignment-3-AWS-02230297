@@ -1,0 +1,3 @@
+now=2026-11-20T13:50:56Z latest_restorable=2026-11-20T13:48:22Z  => RPO exposure = 154s (target <= 300 s)
+Restore available after 1015 s
+RTO estimate = restore 1015 s + repoint app (terraform apply with the restored endpoint, ~5 min) (target <= 3600 s)

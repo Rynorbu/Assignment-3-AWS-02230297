@@ -153,10 +153,10 @@ Steady state is 7.2 TB, about 720,000 objects.
 | Annual cost (on-demand, same design) | $4,753 | **$4,291 (−10 %)** |
 | Main price differences | RDS t4g.medium Multi-AZ $0.203/h · API Gateway $1.25/M · Proxy $0.018 | $0.167/h (−18 %) · $1.05/M (−16 %) · $0.017 |
 | AZs / services needed | 3 AZs, all services available | 3 AZs, all services available |
-| Latency from Bhutan (TCP round trip) | Preliminary check on 2026-11-19 (5 samples): **min 94 ms**, median 139 ms. Full 20-sample run: ☐ | Preliminary: **min 74 ms**, median noisy. Full run: ☐ |
-| Routing from Bhutan | International links leave through India, then by subsea cable to Singapore | Over land through India: fewer hops |
-| Effect on this app | The static app is served from CloudFront edges in India, so only `/api/*` calls make the trip. Autosave runs in the background every 30 s, so 50 ms makes no visible difference. | — |
-| Verdict | **Stay in Singapore** (brief requirement, mature Region). The 10 % difference is about $460 a year. | **Use Mumbai as the DR Region** (`dr_region = ap-south-1`): cheap, close to the users. |
+| **Latency from Bhutan** (TCP round trip, 20 samples, 2026-11-20 14:18 BTT, [`latency-20261120-1418.csv`](../evidence/latency/latency-20261120-1418.csv)) | **median 145 ms** (min 117, p90 176) ✅ fastest | median 165 ms (min 135, p90 195) |
+| Routing from Bhutan | Traffic leaves through India, then over subsea cable to Singapore. The measurement shows this path is **20 ms faster** than the land route to Mumbai on this connection. | Mumbai is geographically closer, but measured slower. Hyderabad (ap-south-2) median 155 ms. N. Virginia (A2 Region) median **364 ms**. |
+| Effect on this app | The static app is served from CloudFront edges, so only `/api/*` calls make the trip. Autosave runs in the background every 30 s, so a 20 ms difference is not visible to students. Moving from N. Virginia (A2) to Singapore cuts each API round trip by about 220 ms. | — |
+| Verdict | **Stay in Singapore**: it is the required Region, it measured the **lowest latency** from Bhutan, and it is a mature Region. Mumbai would save about $460 a year (10 %), but would be slower for these users. | **Use Mumbai as the DR Region** (`dr_region = ap-south-1`): cheaper, only 20 ms slower, and a different geography from Singapore. |
 
 **How to measure latency (run from Bhutan):**
 
@@ -171,9 +171,9 @@ Also capture a screenshot of <https://www.cloudping.info> from the same connecti
 | Requirement | Target | Evidence | Result |
 |---|---|---|---|
 | **Budget** | ≤ $1,000 / month, yearly average | $359.19 average. Even the unoptimised A2 design is $613.31. The exam month is $522.74. | ✅ **Meets.** 64 % headroom |
-| **Peak load** | 3,000 students start within 5 min | Load test: A2 sizing fails (B1). The fixed design (t4g.large + Proxy, Lambda quota ≥ 1,000) ☐ re-tested at ☐ % success, p95 ☐ ms | ✅ **Meets after the fix**, *if the re-test confirms it* |
-| **RPO 5 min** | ≤ 5 min of answers lost | AZ loss: 0 (FT1, synchronous standby). Corruption: ☐ s (FT2, PITR). Files: 0 (FT4, versioning). Queues: 0 (FT5). | ✅ Meets |
-| **RTO 1 h** | ≤ 60 min | AZ loss ☐ s (FT1). PITR ☐ min (FT2). Partial AZ network ☐ s (FT3). | ✅ Meets for AZ and data failures |
+| **Peak load** | 3,000 students start within 5 min | Load test before: 68.5 % success (WAF per-IP limit blocked 11,762 requests). After the fix (per-student WAF limit + API concurrency cap 40, still `db.t4g.micro`): **100 % of 47,273 requests, p95 885 ms, 0 throttles, DB connections 28**. Lambda quota 1,000. | ✅ **Meets** (re-tested 2026-11-20) |
+| **RPO 5 min** | ≤ 5 min of answers lost | AZ loss: 0 (FT1, synchronous standby). Corruption: **154 s** (FT2, PITR; worst of 3 readings 308 s, covered by client-side autosave). Files: 0 (FT4, versioning). Queues: 0 (FT5). | ✅ Meets |
+| **RTO 1 h** | ≤ 60 min | AZ loss **66 s** (FT1). PITR **about 22 min** (FT2: 17 min restore + 5 min swap). Partial AZ network loss **120 s**, self-healed (FT3) · worker outage drained in **96 s** (FT5) · deleted file **73 s** (FT4). | ✅ Meets for AZ and data failures |
 | Survive loss of one AZ | yes | FT1 + FT3 | ✅ |
 | Region loss | (not required) | FT6 tabletop: RTO 2–4 h with DR copy | ⚠️ **Accepted risk** |
 | Files kept 5 years | yes | Lifecycle expires at 1,825 days. Monthly DB backups kept 1,825 days. | ✅ |
@@ -181,7 +181,7 @@ Also capture a screenshot of <https://www.cloudping.info> from the same connecti
 **Verdict: FEASIBLE.**
 - The platform costs about **$4,310 a year (≈ $0.54 per student)**, about a third of the budget.
 - It meets RPO and RTO for every AZ-level and data-level failure.
-- It handles the exam peak once the database is pooled (RDS Proxy) and sized up for exam months, and the Lambda concurrency quota is raised to 1,000.
+- It handles the exam peak: the re-test served 3,000 students starting within 5 minutes at 100 % success, after fixing the WAF per-IP limit and capping database connections. Production exam months add RDS Proxy and `db.t4g.large` for headroom.
 - The remaining risk is the loss of the whole Singapore Region. It is accepted, with optional cross-Region backups to Mumbai at about $3–5 a month.
 
 ## 7. Optimisations and their savings (Task 3)
@@ -203,3 +203,31 @@ O4 was already in A2, so it is shown as a saving against the naive option. The A
 - CloudFront flat-rate or free tier: about −$350 a year.
 - DynamoDB for autosave: about −$1,500 a year or more, but needs a code rewrite.
 - Provisioned concurrency only around exam starts: adds cost, reduces latency.
+
+## 8. What the testing itself cost (estimated, because there is no Billing access)
+
+The shared class account gives students no **Billing / Cost Explorer** access, so the cost of the test stack is calculated from its running time and the same Singapore unit prices as §2.
+
+| Item (test configuration: `db.t4g.micro` Multi-AZ, no NAT, no Proxy) | Unit price | Per hour |
+|---|---|---:|
+| RDS `db.t4g.micro` Multi-AZ | $0.051 / h | $0.0510 |
+| RDS gp3 storage, 20 GB Multi-AZ | $0.276 / GB-month | $0.0076 |
+| VPC interface endpoints (SQS + Secrets Manager) × 2 AZ | $0.013 / h each | $0.0520 |
+| WAF web ACL + 4 rules | $9 / month | $0.0123 |
+| KMS key, secret, dashboard, alarms over the free tier | about $5 / month | $0.0068 |
+| **Fixed running cost** | | **≈ $0.13 / h (≈ $3.10 / day)** |
+
+| Usage during the tests | Quantity | Cost |
+|---|---|---:|
+| API Gateway + WAF + CloudFront requests (2 load tests + smoke tests) | about 95,000 requests | ≈ $0.30 |
+| Lambda (arm64) | about 95,000 invocations | ≈ $0.05 |
+| FT2 restored instance (`db.t4g.micro` single-AZ, about 35 min) | $0.025 / h | ≈ $0.02 |
+| CloudWatch Logs ingestion | < 0.5 GB | ≈ $0.35 |
+| **Usage total** | | **≈ $0.70** |
+
+**Stack lifetime:**
+- Created 2026-11-20 at 09:46 UTC (RDS `InstanceCreateTime`).
+- Destroyed ☐ (time of the green Tear down run).
+- Total ☐ h, so the **estimated test cost is ☐ h × $0.13 + $0.70 ≈ $☐**.
+
+That is about 1 % of one month of the production estimate. The production design costs more mainly because of the larger exam-month database, RDS Proxy and 5 years of stored files.

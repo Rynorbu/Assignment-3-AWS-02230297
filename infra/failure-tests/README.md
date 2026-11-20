@@ -9,14 +9,14 @@ Every scenario has a script in [`scripts/failure-tests/`](../../scripts/failure-
 - **Measured** is filled in from the script output after the run.
 - Any measured value still showing `☐` has not been run yet.
 
-| # | Scenario | Layer | How it is caused | RPO target | RTO target |
-|---|---|---|---|---|---|
-| FT1 | AZ hosting the primary DB is lost | Database | `reboot-db-instance --force-failover` | 5 min | 1 h |
-| FT2 | Answers wiped by a bad change (logical corruption) | Database | Point-in-time restore | 5 min | 1 h |
-| FT3 | Network of one AZ lost for the Lambda subnet | Compute / network | Deny-all network ACL on the AZ-a app subnet (the same fault FIS `aws:network:disrupt-connectivity` injects) | 5 min | 1 h |
-| FT4 | Submitted assignment file deleted | Storage | `aws s3 rm` on a versioned object | 5 min | 1 h |
-| FT5 | Marking worker down during submissions | Async | Lambda reserved concurrency = 0 | 5 min | 1 h |
-| FT6 | Whole Singapore Region unavailable (tabletop exercise, not executed) | Region | — | 5 min | 1 h |
+| # | Scenario | Layer | How it is caused | RPO target | RTO target | Measured result |
+|---|---|---|---|---|---|---|
+| FT1 | AZ hosting the primary DB is lost | Database | `reboot-db-instance --force-failover` | 5 min | 1 h | ✅ RTO 66 s · RPO 0 |
+| FT2 | Answers wiped by a bad change (logical corruption) | Database | Point-in-time restore | 5 min | 1 h | ✅ RTO about 22 min · RPO 154 s (worst reading 308 s ⚠️) |
+| FT3 | Network of one AZ lost for the Lambda subnet | Compute / network | Deny-all network ACL on the AZ-a app subnet (the same fault FIS `aws:network:disrupt-connectivity` injects) | 5 min | 1 h | ✅ RTO 120 s (self-healed) · RPO 0 |
+| FT4 | Submitted assignment file deleted | Storage | `aws s3 rm` on a versioned object | 5 min | 1 h | ✅ RTO 73 s · RPO 0 |
+| FT5 | Marking worker down during submissions | Async | Lambda reserved concurrency = 0 | 5 min | 1 h | ✅ backlog drained 96 s after restore · 0 lost |
+| FT6 | Whole Singapore Region unavailable (tabletop exercise, not executed) | Region | — | 5 min | 1 h | tabletop: not met for Region loss (accepted) |
 
 Before you start:
 
@@ -47,12 +47,22 @@ export FT_STUDENT_EMAIL=student1@example.com FT_PASSWORD='YourPass123' FT_EXAM_I
 - The API returns 5xx or slow responses for about **60–120 s without the proxy**, or **under 30 s with it**.
 - Students see "Offline – kept on this device, retrying". Answers stay in `localStorage` and are sent on the next 30-second autosave.
 
+**Measured on 2026-11-20 at 13:33 UTC** (no RDS Proxy, `db.t4g.micro` Multi-AZ). Evidence: `evidence/failure-tests/ft1-20261120-193247-*`, plus screenshots `ft1-*.png`.
+
 | Measure | Expected | Measured | Target | Pass? |
 |---|---|---|---|---|
-| Health-check downtime (`downtime_s`) | 60–120 s (no proxy), < 30 s (proxy) | ☐ | ≤ 3600 s | ☐ |
-| Failed probes | 15–60 | ☐ | — | — |
-| Marker answer present after failover (RPO) | yes, so 0 s lost | ☐ | ≤ 300 s | ☐ |
-| Primary AZ before → after | `ap-southeast-1a` → `1b` | ☐ | different AZ | ☐ |
+| RDS failover duration (events: *failover started* 13:33:07 → *completed* 13:33:46) | 60–120 s | **39 s** | — | — |
+| Health-check impact window (first failed probe → stable again) | 60–120 s (no proxy) | **66 s** (`downtime_s=66`) | ≤ 3600 s | ✅ |
+| Failed probes | 15–60 | **4 of 64**: t+7 s (timeout), t+15 s and t+19 s (HTTP 500), t+65 s (one late timeout while DNS settled). Healthy again from t+23 s. | — | — |
+| Real user-visible outage | — | about **16 s**, plus one blip at t+65 s | — | — |
+| Marker answer present after failover (RPO) | yes, so 0 s lost | **yes: `RPO check: marker FOUND`**, 0 answers lost | ≤ 300 s | ✅ |
+| Primary AZ before → after | `ap-southeast-1a` → `1b` | **`ap-southeast-1a` → `ap-southeast-1b`** (standby now in 1a) | different AZ | ✅ |
+
+**Result:**
+- **Pass.** The platform survived the loss of the AZ holding the primary database.
+- **RTO 66 s** against a 1-hour target (1.8 % of the budget). **RPO 0 s** against a 5-minute target.
+- It recovered faster than expected even without RDS Proxy, because the API's `db.query` retries once on a broken connection.
+- During those seconds, students would have seen "Offline – kept on this device" and their next 30-second autosave would have gone through.
 
 **Likely fix and improvements:**
 1. Turn on RDS Proxy (`DB_USE_RDS_PROXY=true`) on a paid plan. It cuts failover impact to seconds.
@@ -76,11 +86,23 @@ export FT_STUDENT_EMAIL=student1@example.com FT_PASSWORD='YourPass123' FT_EXAM_I
 - Restoring a 20 GB gp3 instance takes about **10–25 min**.
 - Switching the app to the restored instance takes about **5 min**: rename the identifiers so the endpoint name stays the same.
 
+**Measured on 2026-11-20** (`db.t4g.micro`, 20 GB gp3). Evidence: `evidence/failure-tests/ft2-20261120-195054-*` (the full run), `ft2-*.png`, plus the RPO readings of two other runs.
+
 | Measure | Expected | Measured | Target | Pass? |
 |---|---|---|---|---|
-| RPO exposure (now − LatestRestorableTime) | 60–300 s | ☐ | ≤ 300 s | ☐ |
-| Restore until `available` | 600–1500 s | ☐ | — | — |
-| Total RTO (restore + switch) | 15–35 min | ☐ | ≤ 60 min | ☐ |
+| RPO exposure (now − LatestRestorableTime), main run | 60–300 s | **154 s** (13:50:56 vs 13:48:22) | ≤ 300 s | ✅ |
+| RPO exposure, all 3 readings | — | 165 s · **154 s** · **308 s** | ≤ 300 s | ⚠️ 1 of 3 just over |
+| Restore until `available` | 600–1500 s | **1,015 s (16.9 min)** (RDS event "Restored from … to 13:48:22" at 13:58:08) | — | — |
+| Total RTO (restore + rename swap, about 5 min) | 15–35 min | **about 22 min** | ≤ 60 min | ✅ |
+
+**Result:**
+- **RTO passes with a wide margin:** about 22 min against 60 min.
+- **RPO is at the edge.** RDS uploads transaction logs every 5 minutes, so `LatestRestorableTime` lags the present by anything from 0 to just over 300 s. One reading (308 s) was 8 s over the target, measured just before the next log upload.
+- **What this means for students:**
+  - **AZ failures** (FT1): RPO = 0, because of the synchronous standby.
+  - **Logical corruption** (this test): the database alone can lose up to about 5 minutes.
+  - The browser keeps every answer in `localStorage` and autosaves every 30 s. After a restore, the next autosave re-sends whatever the restore point missed, so for an exam in progress the effective loss is about 0.
+- **Fix, if a strict ≤ 5 min database-only RPO is required:** use **Aurora PostgreSQL** (continuous backup to S3, restore point about 1 s behind), or a read replica / logical replication to a delayed copy. The cost of each is in `docs/cost-report.md` §4.2.
 
 **Recovery runbook (the fix):**
 
@@ -110,14 +132,24 @@ aws rds modify-db-instance --db-instance-identifier exam-platform-a3-prod-db --m
 - Expect a **partial failure**: roughly **20–50 % of API calls fail** for the 5 minutes. Environments in the healthy AZ keep working.
 - Autosave retries every 30 seconds and keeps answers locally. The answers that actually reach the database are, in the worst case, 30–60 s behind the student's screen. Nothing is lost while the browser stays open.
 
+**Measured on 2026-11-20, fault from 14:54:14 to 14:59:26 UTC** (subnet `subnet-0a50b7ce14cf23b0f`, ap-southeast-1a). Evidence: `evidence/failure-tests/ft3-20261120-205401-*`, `ft3-nacl-fault.png`, `ft3-terminal.png`, `ft3-dashboard.png`.
+
 | Measure | Expected | Measured | Target | Pass? |
 |---|---|---|---|---|
-| Failed probes during the 5-minute fault | 20–50 % | ☐ | — | — |
-| Time until 100 % success after the fault ends | < 30 s | ☐ | ≤ 3600 s | ☐ |
-| Data lost (answers) | 0 (client retry) | ☐ | ≤ 300 s | ☐ |
+| Failed probes during the 5-minute fault | 20–50 % (partial) | **16 of 57 (28 %).** All of them in the **first 120 s** (t+0 to t+112 s, every request timed out). Then **100 % success from t+120 s, while the deny-all ACL was still in place.** | — | — |
+| User-visible outage (`downtime_s`) | — | **120 s** | ≤ 3600 s | ✅ |
+| Recovery after the ACL was restored | < 30 s | **immediate**: 0 failed probes in the 2-minute recovery window | ≤ 3600 s | ✅ |
+| Data lost (answers) | 0 (client retry) | **0**: autosave keeps answers locally and retries every 30 s, and 120 s is 4 retries | ≤ 300 s | ✅ |
 
-**Likely fix:**
-1. Evacuate the sick AZ. Set `lambda_subnet_indexes = [1]` and apply (about 2–4 minutes). This removes the broken subnet from every VPC Lambda.
+**Finding (different from the prediction):**
+- The impact was **total for 2 minutes, then healed itself**, instead of a constant partial error rate.
+- At low traffic, the few warm API Lambda environments happened to sit in the broken AZ-a subnet, so every request hit them and timed out.
+- After about 2 minutes, Lambda replaced those failing environments, and new ones were placed in the healthy AZ-b subnet. From then on everything worked, even though AZ-a was still cut off.
+- **The design therefore survived the loss of an AZ's network with a 120 s outage, without any manual action.**
+
+**Likely fix (to cut the 120 s further):**
+1. Lower the API Lambda **timeout** (15 s → 6 s) and keep the DB `connectionTimeout` at 5 s, so broken environments fail and get replaced faster.
+2. If an AZ stays unhealthy, evacuate it: set `lambda_subnet_indexes = [1]` and apply (about 2–4 minutes). This removes the broken subnet from every VPC Lambda.
 2. Keep the client-side retry.
 3. Alarm on the API 5xx rate. It already exists and triggers within 1–2 minutes.
 
@@ -136,10 +168,12 @@ Cost: $0. Network ACLs are free.
 
 **Expected impact:** None for students. Versioning keeps the data, and the "deleted" object comes back in seconds.
 
+**Measured on 2026-11-20 at 14:05 UTC.** Evidence: `evidence/failure-tests/ft4-20261120-200534-*`, `ft4-s3-versions.png` (delete marker over the 2.0 MB version), `ft4-terminal.png`.
+
 | Measure | Expected | Measured | Target | Pass? |
 |---|---|---|---|---|
-| Recovery time | < 10 s | ☐ | ≤ 3600 s | ☐ |
-| Checksum identical (RPO) | yes, so 0 s lost | ☐ | ≤ 300 s | ☐ |
+| Recovery time (remove the delete marker + download and verify) | < 10 s | **73 s** (mostly AWS CLI start-up time on Windows; the S3 action itself is instant) | ≤ 3600 s | ✅ |
+| Checksum identical (RPO) | yes, so 0 s lost | **IDENTICAL**: SHA-256 `0b9a707f…5412b` before and after, so **0 bytes lost** | ≤ 300 s | ✅ |
 
 **Finding and fix:**
 - Non-current versions expire after **30 days** (`storage.tf`). A deletion noticed later than that cannot be undone.
@@ -164,11 +198,20 @@ Cost: $0. Network ACLs are free.
 - Messages stay in SQS, which retains them for 4 days.
 - While the worker is throttled, SQS keeps redelivering. With `maxReceiveCount = 5`, **some messages can reach the DLQ**. That triggers the DLQ alarm, and the script redrives them.
 
+**Measured on 2026-11-20:** worker stopped 14:40:01, 50 messages queued by 14:42:18, worker restored 14:45:40 UTC. Evidence: `evidence/failure-tests/ft5-20261120-203950-*` (the queue depth every 15 s), `ft5-*.png`.
+
 | Measure | Expected | Measured | Target | Pass? |
 |---|---|---|---|---|
-| Messages lost | 0 | ☐ | ≤ 300 s of work | ☐ |
-| Backlog drain after restore | < 60 s | ☐ | ≤ 3600 s | ☐ |
-| Messages that reached the DLQ (then redriven) | 0–50 | ☐ | 0 after redrive | ☐ |
+| Worker outage | 3 min | **5 min 39 s** (14:40:01 → 14:45:40) | — | — |
+| Queue depth during the outage | rises to 50 | **50**, held steady: nothing was processed and nothing was dropped | — | — |
+| Messages lost | 0 | **0** | ≤ 300 s of work | ✅ |
+| Backlog drain after restore | < 60 s | **96 s** (50 → 28 → 16 → 6 → 0) | ≤ 3600 s | ✅ |
+| Messages that reached the DLQ | 0–50 | **0**: the DLQ depth stayed 0, so no redrive was needed | 0 after redrive | ✅ |
+
+**Result:**
+- **Pass.** SQS kept every message while the worker was down. When the worker came back, the backlog cleared in 96 s with no help.
+- Throttling the consumer did **not** push messages into the DLQ in a 5-minute outage. Longer outages could, after 5 receives.
+- With an end-to-end RTO of about 7 minutes and RPO 0, a marking outage only delays results; it does not lose submissions.
 
 **Likely fix:**
 - Never stop a queue consumer with reserved concurrency 0. Disable the **event source mapping** instead, so messages are not received at all.

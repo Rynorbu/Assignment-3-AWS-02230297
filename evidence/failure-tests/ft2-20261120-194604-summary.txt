@@ -1,0 +1,1 @@
+now=2026-11-20T13:46:07Z latest_restorable=2026-11-20T13:43:22Z  => RPO exposure = 165s (target <= 300 s)

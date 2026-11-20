@@ -24,9 +24,9 @@ There are 8,000 students and 400 staff. Normal months have 300–500 concurrent 
 | Requirement | Result |
 |---|---|
 | Budget ≤ $1,000/month (yearly average) | ✅ $359.19 (36 % of budget). Exam month $522.74. |
-| Peak: 3,000 students start within 5 min | ✅ after the fix: RDS Proxy + `t4g.large` + Lambda quota ≥ 1,000. Re-test: ☐ % success, p95 ☐ ms ([load test](docs/load-test.md)) |
-| RPO 5 min | ✅ AZ loss 0 s (FT1) · data corruption ☐ s (FT2) · files 0 s (FT4) |
-| RTO 1 h | ✅ AZ failover ☐ s (FT1) · point-in-time restore ☐ min (FT2) · AZ network ☐ s (FT3) |
+| Peak: 3,000 students start within 5 min | ✅ **proven by load test:** before 68.5 % success (WAF blocked 11,762 requests); after the fix (per-student WAF limit + API concurrency cap 40) **100 % of 47,273 requests, p95 885 ms, DB connections 67 → 28** ([load test](docs/load-test.md)) |
+| RPO 5 min | ✅ AZ loss 0 s (FT1) · data corruption **154 s** (FT2, worst reading 308 s; client autosave re-sends) · files 0 s (FT4) |
+| RTO 1 h | ✅ AZ failover **66 s** (FT1) · point-in-time restore **about 22 min** (FT2) · AZ network loss **120 s**, self-healed (FT3) · worker outage drained in **96 s** (FT5) · deleted file **73 s** (FT4) |
 | Survive loss of one AZ | ✅ FT1, FT3 |
 | Region loss | ⚠️ accepted risk. Optional backup copy to Mumbai gives RTO 2–4 h (FT6). |
 

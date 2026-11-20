@@ -1,0 +1,3 @@
+Uploaded assignments/ft4-test/ft4-1795183534.pdf sha256=0b9a707f5d6da580eec6c8c5ead871ca3f965cce0f56a76092ed68f62ff5412b
+Deleted at 2026-11-20T14:05:41Z (a delete marker is created, data is kept)
+Recovered after 73 s, checksum IDENTICAL (RPO 0)

@@ -1,308 +1,174 @@
-# Assignment 3: complete step-by-step plan (screenshots instead of a video)
+# Assignment 3: to-do list (updated 2026-11-20)
 
-Your tutor agreed that **screenshots replace the video**. Every screenshot below has:
-- an **ID** (S01, S02, …),
-- an **exact file name**,
-- the **folder** it goes in.
+✅ done · ⏳ in progress / next · ⬜ not started
 
-`evidence/README.md` already embeds every file name. When you save a screenshot with the right name in the right folder, it appears in the report automatically.
+**Your values (use these everywhere):**
 
-**Screenshot rules (markers check these):**
-1. Show the **Region selector (Asia Pacific (Singapore))** in every AWS console screenshot.
-2. Show the **date and time**: the Windows clock in the taskbar, or the console time range.
-3. Use full-window screenshots (`Win + Shift + S` → *Window*), not tiny crops. Zoom into a widget only when the ID asks for it.
-4. Never write an expected value into a "Measured" cell. Only numbers you saw on screen.
+| What | Value |
+|---|---|
+| GitHub repo | `Rynorbu/Assignment-3-AWS-02230297` |
+| AWS account / Region | `363242104805` / `ap-southeast-1` (Singapore). WAF metrics are in `us-east-1`. |
+| Stack name prefix | `exam-platform-a3-prod` |
+| State bucket | `exam-platform-a3-tfstate-363242104805` |
+| App URL | `https://d2tat6wr6b099o.cloudfront.net` |
+| Tutor / Student / Admin | `02230297.cst+tutor@rub.edu.bt` / `02230297.cst+student@rub.edu.bt` / `02230297.cst+admin@rub.edu.bt`, password `Passw0rd1234` |
+| Load-test accounts | `loadtest001…200@example.com`, password `LoadTest#2026pass` |
+| Exam ID | `64bd5ba8-04f0-4abc-a634-7891448ae697` |
+| Account plan | **AWS Free plan.** RDS Proxy, AWS FIS and DB sizes above `db.t4g.micro` are blocked, so we use **Path B**. |
+
+**Screenshot rules:**
+- Show the **Region** in the top right and the **date/time**: either the taskbar clock or the console time range.
+- Use **Win + Shift + S → Window**.
+- Save each screenshot with the **exact file name** below. `evidence/README.md` already shows every one of these names.
 
 ---
 
-## Do I need to deploy Terraform again and set GitHub variables? **Yes.**
+## Phase 0: Preparation ✅
 
-| Question | Answer | Why |
+| Step | Status | Evidence |
 |---|---|---|
-| Deploy again? | **Yes**, in **Singapore** | Assignment 2 ran in us-east-1 and was torn down. The A3 rubric needs **measured** failure tests and a load test **proven with CloudWatch**, and both need a running stack. |
-| New GitHub repo? | **Yes**, e.g. `DSO303-Assignment-03` | The brief says "submit in your own repository". Keep A2 untouched. |
-| GitHub variables again? | **Yes** | Variables belong to a repo, so the new repo starts empty. |
-| Bootstrap again? | **Yes**, with a different project name | The A2 deploy role only trusts the **A2 repo**. Bootstrapping with `project=exam-platform-a3` creates a new state bucket and role, with no name clash with A2. |
+| A2 stack checked, account and Region set | ✅ | `aws-account/aws-account.png`, `aws-account/set-region.png` |
+| Lambda quota = 1,000 in Singapore | ✅ | `quotas/lambda-quota.png` |
+| SES production access request | ⬜ optional | `quotas/ses-request.png` |
+| $30 safety budget | ⬜ optional (recommended) | `quotas/budget.png` |
 
----
+## Phase 1: A3 repository ✅
 
-## Phase 0: Preparation (day 1, about 40 min). Start early: some approvals take days.
+Pushed to `Rynorbu/Assignment-3-AWS-02230297`.
 
-- [ ] **0.1 Check the A2 stack is really gone.** In the console, Region **N. Virginia**, check that nothing named `exam-platform-a3-prod` remains in RDS, Lambda or IAM → Roles.
-  - The A3 stack reuses the same resource names, and IAM role names are global, so leftovers would clash.
-  - If something remains, run the A2 repo's **Tear down** workflow first.
-- [ ] **0.2 Check your tools** (Git Bash):
+## Phase 2: Pricing Calculator ⬜ (you chose to do this last; see Phase 10)
+
+## Phase 3: Latency from Bhutan ✅
+
+- `latency/latency-terminal.png` ✅, `latency/cloudping.png` ✅, `latency/latency-20261120-1418.csv` ✅
+- Result (already written into `docs/cost-report.md` §5): **Singapore 145 ms** median, Mumbai 165 ms, Hyderabad 155 ms, N. Virginia 364 ms.
+
+## Phase 4: Architecture diagram PNG ⬜
+
+- [ ] Copy the ` ```mermaid ` block from `architecture/README.md` into <https://mermaid.live>, then **Actions → PNG**.
+- [ ] Save it as **`architecture/architecture-a3.png`**, and a copy as **`evidence/architecture/architecture-a3.png`**.
+- [ ] Under the title of `architecture/README.md`, add the line `![Revised architecture](architecture-a3.png)`.
+
+## Phase 5: Deploy to Singapore ✅
+
+All taken: `deploy/bootstrap-outputs.png`, `github-variables.png`, `pipeline-green.png`, `terraform-apply-log.png`, `terraform-init.png`, `terraform-output-1.png`, `vpc-no-nat.png`, `vpc-endpoints.png`, `subnets-2az.png`, `rds-multi-az.png`, `lambda-arm64.png`, `backup-plan.png` (+ daily/monthly), `s3-lifecycle.png`, `dashboard.png`, `users-created.png`, `tutor-exam-created.png`, `app-autosave.png`, `autosave-after-refresh.png`, `notify/subscribe.png`, `notify/email_sns.png`.
+
+**Deployment findings, already in `architecture/CHANGELOG.md`:**
+- **C13:** name clash with an old `exam-platform-prod` stack, so A3 was renamed `exam-platform-a3-prod`.
+- **C9:** AWS FIS is blocked on the Free plan, so FT3 uses a deny-all network ACL instead.
+
+## Phase 6: Load test BEFORE ✅ (one screenshot left)
+
+- ✅ Run on 2026-11-20 at 11:30–11:41 UTC: **68.48 % success, 11,750 × HTTP 403, p95 10.2 s.** Results in `load-test/before-2026-11-20T11-30-13-758Z.json/.csv`.
+- ✅ Metrics exported to `cloudwatch/before-metrics.json`.
+- ✅ Screenshots: `load-test/before-terminal.png`, `before-dashboard.png`, `before-rds-connections.png`, `before-api-errors.png`, `before-waf-sampled.png`
+- ✅ Analysis written in `docs/load-test.md` §2.
+  - **B1, proven:** the WAF per-IP rate limit blocked 11,762 requests.
+  - **B2, building up:** the database reached 67 connections and 57 MB of free memory.
+- [ ] ⏳ **`load-test/before-waf-blocked.png`**: the WAF `BlockedRequests` graph. Easiest way, as a terminal table:
   ```bash
-  aws --version && terraform -version && node -v && git --version
-  aws sts get-caller-identity        # must be the account you will use
-  aws configure set region ap-southeast-1
+  aws cloudwatch get-metric-statistics --region us-east-1 --namespace AWS/WAFV2 --metric-name BlockedRequests --dimensions Name=WebACL,Value=exam-platform-a3-prod-waf Name=Rule,Value=ratelimit --start-time 2026-11-20T11:29:00Z --end-time 2026-11-20T11:43:00Z --period 60 --statistics Sum --query "sort_by(Datapoints,&Timestamp)[].[Timestamp,Sum]" --output table
   ```
-- [ ] **0.3 Request the Lambda concurrency quota.**
-  1. Console → **Service Quotas** → AWS services → **AWS Lambda** → *Concurrent executions*, Region **Singapore**.
-  2. If it is under 1,000, click *Request increase at account level* and ask for **1,000**.
-  - 📸 **S01** `evidence/quotas/S01-lambda-quota.png`: the quota value, or the open request
-- [ ] **0.4 (Optional, improves bottleneck B3) Request SES production access.** SES → *Account dashboard* → *Request production access*.
-  - 📸 **S02** `evidence/quotas/S02-ses-request.png`
-- [ ] **0.5 Set a safety budget:** Billing → **Budgets** → *Create* → Monthly cost budget **$30**, with an email alert.
-  - 📸 **S03** `evidence/quotas/S03-budget.png`
-- [ ] **0.6 Decide your path.**
-  - In Singapore, try RDS → **Proxies → Create proxy** (just open the page).
-  - If your plan blocks it (the Free plan does), use **Path B**. Otherwise use **Path A**.
+  Or in the console: **N. Virginia → CloudWatch → All metrics → WAFV2 → Rule, WebACL → `ratelimit` / `BlockedRequests` (CloudWatch uses the rule's metric name `ratelimit`, not `RateLimitPerIp`)**, statistic **Sum**, period **1 min**, time range **11:29–11:43 UTC**.
 
-  | | Path A (paid account) | Path B (Free plan) |
-  |---|---|---|
-  | Load-test fix | RDS Proxy + `db.t4g.large` | `API_RESERVED_CONCURRENCY=60` + the largest instance allowed (`db.t4g.small` or `medium`) |
+## Phase 7: Fix and load test AFTER ✅ (screenshots left)
 
-## Phase 1: Create the A3 repository (about 15 min)
+> **Result (12:55:48–13:06:19 UTC):** **100 % of 47,273 requests OK, p95 885 ms, 0 WAF blocks, 0 throttles, DB connections 28 (was 67).** Already written into `docs/load-test.md` §4, `README.md` and `docs/cost-report.md` §6. Metrics are in `cloudwatch/after-metrics.json`.
+> **For the AFTER screenshots, use the window `2026-11-20 12:54:00` → `13:08:00` UTC.**
 
-- [ ] **1.1** On GitHub, create an **empty** repo `DSO303-Assignment-03`: no README, no .gitignore.
-- [ ] **1.2** In Git Bash:
+- ✅ **The fix in code:** a WAF per-student rate limit (`RateLimitPerStudent`, 1,000 requests per 5 min per token), and the per-IP backstop raised to 150,000 (`infra/edge.tf`). The WAF part is already deployed.
+- ✅ `db.t4g.small` was refused with `FreeTierRestrictionError`: `load-test/free-plan-error.png` ✅, `load-test/fix-variables.png` ✅
+- [x] **7.1 DONE** (concurrency = 40 confirmed). In GitHub variables, check that `DB_INSTANCE_CLASS=db.t4g.micro`, `API_RESERVED_CONCURRENCY=40` and `DB_USE_RDS_PROXY=false` are set. Then wait for the **Deploy** run from commit *"Free plan: keep db.t4g.micro, cap API concurrency at 40"* to go **green**. If it didn't run, use **Actions → Deploy → Run workflow**.
+  - Check it applied (Git Bash). It must print `40`:
+    ```bash
+    aws lambda get-function-concurrency --region ap-southeast-1 --function-name exam-platform-a3-prod-api
+    ```
+    If it prints nothing, the variable or the deploy didn't apply yet.
+  - 📸 **`load-test/fix-waf-rules.png`**: **N. Virginia → WAF & Shield → Web ACLs → Global (CloudFront) → `exam-platform-a3-prod-waf` → Rules** tab. Both `RateLimitPerIp` and `RateLimitPerStudent` must be visible.
+  - 📸 **`load-test/fix-api-concurrency.png`**: **Singapore → Lambda → `exam-platform-a3-prod-api` → Configuration → Concurrency**, showing reserved concurrency **40**.
+- [x] **7.2 DONE.** Wait **10 minutes after the deploy**, then:
   ```bash
   cd "/c/Users/HP/OneDrive/Desktop/Assigment-3-AWS"
-  git init -b main
-  git add .
-  git commit -m "Assignment 3: starting point from A2 + cost/resilience work [skip ci]"
-  git remote add origin https://github.com/<your-user>/DSO303-Assignment-03.git
-  git push -u origin main
-  ```
-  `[skip ci]` stops the deploy from running before the variables exist.
-
-## Phase 2: Pricing Calculator. **No AWS deployment needed** (about 1.5 h) → rubric "costed estimate" (2 marks)
-
-Follow `docs/calculator-inputs.md` line by line. **Region = Asia Pacific (Singapore)** for every service.
-
-- [ ] **2.1 Estimate 1, normal month.** Add all services, then **Save and share** → copy the link.
-  - 📸 **S04** `evidence/calculator/S04-normal-month-summary.png`: the *My Estimate* page with the monthly total and the list of services
-  - Also save **Export → CSV** as `evidence/calculator/normal-month.csv` and **Export → PDF** as `evidence/calculator/normal-month.pdf`
-- [ ] **2.2 Estimate 2, exam month.**
-  - 📸 **S05** `evidence/calculator/S05-exam-month-summary.png`, plus `exam-month.csv` and `exam-month.pdf`
-- [ ] **2.3 Estimate 3, A2 design in Singapore (baseline):** 2 NAT gateways, `db.m6g.large` On-Demand, 90-day logs.
-  - 📸 **S06** `evidence/calculator/S06-a2-baseline-summary.png`, plus `a2-baseline.csv` and `a2-baseline.pdf`
-- [ ] **2.4 Optimisations, one change at a time.** Duplicate estimate 3, apply each change, and screenshot the new total *after each step*:
-
-  | ID | File | Change applied |
-  |---|---|---|
-  | S07 | `evidence/calculator/S07-O1-remove-nat.png` | NAT gateways 2 → 0, add the Secrets Manager endpoint |
-  | S08 | `evidence/calculator/S08-O2-right-size.png` | `db.m6g.large` → `db.t4g.medium` |
-  | S09 | `evidence/calculator/S09-O3-reserved.png` | On-Demand → 1-yr Reserved, partial upfront |
-  | S10 | `evidence/calculator/S10-O5-logs.png` | logs stored 33 GB → 11 GB |
-  | S11 | `evidence/calculator/S11-O4-s3-standard.png` | (separately) S3 all in Standard 7,220 GB, to show what lifecycle saves |
-
-  Each saving = previous total − new total. Write them into `docs/cost-report.md` §7.
-- [ ] **2.5** Copy the calculator totals into `docs/cost-report.md` §2 and §6, and into the `README.md` Summary. If they differ from my model by a few dollars, **the calculator wins**.
-- [ ] **2.6** Paste the 3 share links into `README.md` (*Links*) and the top of `docs/cost-report.md`. Add the date you checked.
-
-## Phase 3: Latency from Bhutan (about 15 min) → rubric "Region comparison"
-
-- [ ] **3.1** In Git Bash: `bash scripts/measure-latency.sh`. It runs 20 samples per Region and saves a CSV in `evidence/latency/`.
-  - 📸 **S12** `evidence/latency/S12-latency-terminal.png`: the printed min/median/p90 table
-- [ ] **3.2** Open <https://www.cloudping.info> and click **HTTP Ping** twice.
-  - 📸 **S13** `evidence/latency/S13-cloudping.png`, with Singapore, Mumbai and N. Virginia visible
-- [ ] **3.3** Put the medians in `docs/cost-report.md` §5 and note your town and ISP (e.g. "Thimphu, Bhutan Telecom fibre").
-
-## Phase 4: Architecture diagram (about 20 min) → rubric "architecture" (2 marks)
-
-- [ ] **4.1** Copy the ` ```mermaid ` block from `architecture/README.md` into <https://mermaid.live>, then **Actions → PNG**. Save it as:
-  - `architecture/architecture-a3.png`
-  - 📸 **S14** a copy at `evidence/architecture/S14-architecture-a3.png`
-- [ ] **4.2** Under the title of `architecture/README.md`, add: `![Revised architecture](architecture-a3.png)`
-- [ ] *(Optional, looks better)* Redraw it in draw.io with AWS icons. **Keep the 🔴 / 🟢 / ✂️ / 🆕 markers.** "Failure points marked" is in the rubric.
-
-## Phase 5: Bootstrap and deploy to Singapore in the BASELINE configuration (about 1 h, mostly waiting)
-
-- [ ] **5.1 Bootstrap** (state bucket + GitHub OIDC role for the **new** repo):
-  ```bash
-  cd infra/bootstrap
-  terraform init
-  terraform apply -var="region=ap-southeast-1" -var="project=exam-platform-a3" \
-                  -var="github_repo=<your-user>/DSO303-Assignment-03" -var="create_oidc_provider=false"
-  cd ../..
-  ```
-  - Use `create_oidc_provider=false` because A2 already created the GitHub OIDC provider in this account. If you get *"provider not found"*, run the command again without that option.
-  - Write down the outputs `state_bucket` and `deploy_role_arn`.
-  - 📸 **S15** `evidence/deploy/S15-bootstrap-outputs.png`
-- [ ] **5.2 GitHub variables:** repo → **Settings → Secrets and variables → Actions → Variables tab → New repository variable**:
-
-  | Name | Value |
-  |---|---|
-  | `AWS_REGION` | `ap-southeast-1` |
-  | `AWS_DEPLOY_ROLE_ARN` | `deploy_role_arn` from 5.1 |
-  | `TF_STATE_BUCKET` | `state_bucket` from 5.1 |
-  | `SES_SENDER_EMAIL` | your email |
-  | `SES_TEST_RECIPIENTS` | `["you+student@gmail.com","you+tutor@gmail.com"]` (JSON list) |
-  | `ALARM_EMAIL` | your email |
-  | `DB_INSTANCE_CLASS` | `db.t4g.micro` ← **baseline for the "before" load test** |
-  | `DB_USE_RDS_PROXY` | `false` ← baseline |
-  | `DB_BACKUP_RETENTION_DAYS` | `1` (Free plan) or leave out (7) |
-
-  Do **not** set `TF_STATE_REGION` (the new bucket is in Singapore).
-  - 📸 **S16** `evidence/deploy/S16-github-variables.png`
-- [ ] **5.3 Deploy:** Actions → **Deploy** → *Run workflow* (or push any commit without `[skip ci]`). It takes about 25 min.
-  - 📸 **S17** `evidence/deploy/S17-pipeline-green.png`: all steps green
-  - 📸 **S18** `evidence/deploy/S18-terraform-apply-log.png`: the end of the apply step showing `Apply complete!` and the outputs (region `ap-southeast-1`)
-- [ ] **5.4** Confirm the emails: the SES verification links and the **SNS subscription** link.
-- [ ] **5.5 Connect your laptop to the state** (needed by every script):
-  ```bash
-  cd backend && npm ci --omit=dev && cd ../infra
-  terraform init -backend-config="bucket=<state_bucket>" -backend-config="region=ap-southeast-1"
-  terraform output
-  cd ..
-  ```
-  - 📸 **S19** `evidence/deploy/S19-terraform-outputs.png`
-- [ ] **5.6 Prove that the design was built as documented.** Console, Region Singapore:
-
-  | ID | File | Where in the console | Must show |
-  |---|---|---|---|
-  | S20 | `evidence/deploy/S20-vpc-no-nat.png` | VPC → **NAT gateways** | *No NAT gateways* (optimisation O1) |
-  | S21 | `evidence/deploy/S21-vpc-endpoints.png` | VPC → **Endpoints** | S3 (Gateway), SQS + Secrets Manager (Interface) |
-  | S22 | `evidence/deploy/S22-subnets-2az.png` | VPC → **Subnets**, filter `exam-platform` | 6 subnets in `ap-southeast-1a` and `1b` |
-  | S23 | `evidence/deploy/S23-rds-multi-az.png` | RDS → database → **Configuration** | Multi-AZ **Yes**, class, primary AZ + secondary AZ |
-  | S24 | `evidence/deploy/S24-lambda-arm64.png` | Lambda → Functions | functions listed with **arm64** |
-  | S25 | `evidence/deploy/S25-backup-plan.png` | AWS Backup → Backup plans → plan | daily 35 d + monthly 1,825 d rules |
-  | S26 | `evidence/deploy/S26-s3-lifecycle.png` | S3 → uploads bucket → **Management** | lifecycle rule (IA → Glacier IR → Deep Archive → expire) |
-  | S27 | `evidence/deploy/S27-dashboard.png` | CloudWatch → Dashboards → `exam-platform-a3-prod` | the dashboard with the new A3 rows |
-- [ ] **5.7 Users and test exam:**
-  ```bash
-  bash scripts/seed-users.sh admin@<you>.com tutor@<you>.com student@<you>.com 'Passw0rd1234'
-  bash scripts/seed-load-users.sh 200 <you>.com 'LoadTest#2026pass'
-  ```
-  1. Open the app URL and sign in as the **tutor**.
-  2. Create an exam with **duration 120 minutes**, open now.
-  3. Note the **exam id**: browser **F12 → Network**, click the exam, look at the `/api/exams/<id>` call.
-  4. Sign in as the **student**, start the exam and type an answer. Wait for "Saved hh:mm:ss".
-  - 📸 **S28** `evidence/deploy/S28-app-autosave.png`: the app running from Singapore with the autosave tick
-
-## Phase 6: Load test BEFORE, to find and prove the bottleneck (about 30 min) → rubric "load test" (2 marks)
-
-- [ ] **6.1** Write down the **start time in UTC** (`date -u`). Then run:
-  ```bash
-  node scripts/peak-load-test.mjs --label before --exam-id <id> --domain <you>.com --accounts 200 --password 'LoadTest#2026pass'
-  ```
-  It runs for about 10 min and prints a line every 10 s. If your laptop or Wi-Fi cannot keep up, use `--students 1500 --autosave 15`: same requests per second, half the sockets. Write down that you did this.
-  - 📸 **S29** `evidence/load-test/S29-before-terminal.png`: the last screen, showing the summary JSON (success %, p95, statuses)
-- [x] **6.1 / 6.4 DONE (2026-11-20 11:30–11:41 UTC).** Result: 68.48 % success, **11,750 × HTTP 403** blocked by WAF. Metrics exported to `evidence/cloudwatch/before-metrics.json`. Analysis written in `docs/load-test.md` §2.
-- [ ] **6.2 Re-take the dashboard screenshots for the REAL window.** CloudWatch → Dashboards → `exam-platform-a3-prod` → **Custom → Absolute → UTC timezone** → `2026-11-20 11:29:00` to `2026-11-20 11:43:00`. Delete the old `before-*.png` files first: they show the wrong window.
-  - 📸 **S30** `evidence/load-test/S30-before-dashboard.png`: the whole dashboard (zoom out with Ctrl + −)
-  - 📸 **S31** `evidence/load-test/S31-before-rds-connections.png`: *RDS connections / memory / write latency* → ⋮ → **Enlarge** (DB connections reach 67, free memory drops to 57 MB)
-  - 📸 **S32** `evidence/load-test/S32-before-api-errors.png`: *API requests / errors* → ⋮ → **Enlarge** (Count is high, but **4xx and 5xx are 0**: the blocked requests never reached the API)
-- [ ] **6.3 Prove the cause: WAF.** The WAF of a CloudFront distribution lives in **us-east-1**.
-  1. Switch the Region to **US East (N. Virginia)** → **WAF & Shield** → **Web ACLs** → **Global (CloudFront)** → `exam-platform-a3-prod-waf`.
-  2. **Traffic overview** tab, time range = the same window (Custom, UTC). It shows the **Blocked** requests and the rule **RateLimitPerIp**.
-     - 📸 **S33** `evidence/load-test/S33-before-waf-blocked.png`
-  3. Scroll to **Sampled requests**, filter by rule **RateLimitPerIp**. It shows the blocked requests: your IP, `/api/attempts/.../answers`, Action **BLOCK**. Sampled requests are only kept for 3 hours, so do this soon.
-     - 📸 **S33b** `evidence/load-test/S33b-before-waf-sampled.png`
-  4. Alternative for S33 if the page looks different: CloudWatch → **All metrics** → Region **N. Virginia** → **WAFV2** → *Region, Rule, WebACL* → tick `exam-platform-a3-prod-waf / RateLimitPerIp / BlockedRequests` → statistic **Sum**, period **1 minute**.
-
-## Phase 7: Apply the fix and re-test (about 45 min)
-
-- [ ] **7.1 Apply the fix.**
-  1. **Code (already done in this repo):** WAF per-student rate limit + per-IP backstop raised to 150,000 (`infra/edge.tf`, `infra/variables.tf`).
-  2. **GitHub variables (Path B, Free plan):** keep `DB_INSTANCE_CLASS=db.t4g.micro` (the Free plan refused `db.t4g.small` with `FreeTierRestrictionError`) and set `API_RESERVED_CONCURRENCY=40`. Keep `DB_USE_RDS_PROXY=false`.
-  3. Push:
-     ```bash
-     git add -A && git commit -m "Load-test fix: WAF per-student rate limit, bigger DB, API concurrency cap" && git push
-     ```
-     The push runs **Deploy**. The DB resize takes about 10–15 min, with a short failover. Wait for the run to go green.
-  - 📸 **S34** `evidence/load-test/S34-fix-variables.png`: the GitHub variables after the change
-  - 📸 **S35** `evidence/load-test/S35-fix-applied.png`: WAF → `exam-platform-a3-prod-waf` → **Rules** tab showing `RateLimitPerIp` **and** `RateLimitPerStudent`
-  - 📸 **S35b** `evidence/load-test/S35b-free-plan-error.png`: the failed Deploy log showing `FreeTierRestrictionError` (evidence for why the DB was not resized)
-  - 📸 **S35c** `evidence/load-test/S35c-api-concurrency.png`: Lambda → `exam-platform-a3-prod-api` → Configuration → **Concurrency** = reserved **40**
-- [ ] **7.2 Run the AFTER test.** Wait **10 minutes after the deploy** so the old per-IP counter has expired. Then:
-  ```bash
   date -u +%Y-%m-%dT%H:%M:%SZ
   node scripts/peak-load-test.mjs --label after --exam-id 64bd5ba8-04f0-4abc-a634-7891448ae697 --domain example.com --accounts 200 --password 'LoadTest#2026pass'
   date -u +%Y-%m-%dT%H:%M:%SZ
   ```
-  - 📸 **S36** `evidence/load-test/S36-after-terminal.png`: the final summary JSON
-- [ ] **7.3** Wait 3 minutes. Take the same views for the AFTER window (start − 1 min to end + 2 min):
-  - 📸 **S37** `evidence/load-test/S37-after-dashboard.png`
-  - 📸 **S38** `evidence/load-test/S38-after-rds-connections.png`
-  - 📸 **S39** `evidence/load-test/S39-after-api-errors.png`
-  - 📸 **S40** `evidence/load-test/S40-after-waf.png`: WAF Traffic overview, Blocked about 0
-- [ ] **7.4** Run `bash scripts/export-metrics.sh after <START> <END>`, then send the terminal summary to Claude (or fill in `docs/load-test.md` §4 yourself). Update the "Peak load" row in `README.md` and `docs/cost-report.md` §6.
+  - Write down both `date -u` times.
+  - 📸 **`load-test/after-terminal.png`**: the final summary JSON
+- [ ] **7.3** Wait 3 minutes. On the dashboard, set **Custom → Absolute → UTC timezone** to START − 1 min through END + 2 min, then take:
+  - 📸 **`load-test/after-dashboard.png`**: the whole dashboard (zoom out with Ctrl + −)
+  - 📸 **`load-test/after-rds-connections.png`**: *RDS connections / memory / write latency* → ⋮ → **Enlarge**
+  - 📸 **`load-test/after-api-errors.png`**: *API requests / errors* → ⋮ → **Enlarge**
+  - 📸 **`load-test/after-waf.png`**: the same WAF command as in Phase 6 with the AFTER times. It should show about 0 blocked.
+- [x] **7.4 DONE.** Send Claude the terminal summary and the two times. Claude exports the metrics and fills in `docs/load-test.md` §4 and the verdict.
 
-## Phase 8: Failure tests, four or more, measured against RPO and RTO (about 1.5–2 h) → rubric "failure tests" (2 marks)
+## Phase 8: Failure tests ✅ ALL DONE: FT1 RTO 66 s · FT2 RTO about 22 min, RPO 154 s · FT3 120 s, self-healed · FT4 73 s, RPO 0 · FT5 drained in 96 s, 0 lost (recorded in `infra/failure-tests/README.md`)
 
-Run these in Git Bash from the repo root after setting the variables:
+Run these once in Git Bash before starting:
+
 ```bash
-export FT_STUDENT_EMAIL=student@<you>.com FT_PASSWORD='Passw0rd1234' FT_EXAM_ID=<id>
+cd "/c/Users/HP/OneDrive/Desktop/Assigment-3-AWS"
+export FT_STUDENT_EMAIL=02230297.cst+student@rub.edu.bt FT_PASSWORD='Passw0rd1234' FT_EXAM_ID=64bd5ba8-04f0-4abc-a634-7891448ae697
 ```
 
-- [ ] **8.1 FT1: AZ loss of the primary database.** First take 📸 **S41**, then run `bash scripts/failure-tests/ft1-az-db-failover.sh`.
+> The student's attempt from Phase 5 may have expired (120 minutes). If FT1 says it cannot save the marker:
+> 1. Sign in as the tutor and create a **new** exam (duration 120, *Load sample questions*, Publish).
+> 2. Copy its ID from the address bar (`#/exams/<id>`) into `FT_EXAM_ID`.
+> 3. Do **not** submit the student's exam.
 
-  | ID | File | Must show |
-  |---|---|---|
-  | S41 | `evidence/failure-tests/S41-ft1-before-az.png` | RDS Configuration: primary AZ **before** |
-  | S42 | `evidence/failure-tests/S42-ft1-terminal.png` | script output: `downtime_s=…` and `RPO check: marker FOUND` |
-  | S43 | `evidence/failure-tests/S43-ft1-after-az.png` | RDS Configuration: primary now in the **other** AZ |
-  | S44 | `evidence/failure-tests/S44-ft1-rds-events.png` | RDS → *Logs & events*: "Multi-AZ instance failover started / completed" with times |
-  | S45 | `evidence/failure-tests/S45-ft1-sns-email.png` | the failover email in your inbox |
-
-- [ ] **8.2 FT2: point-in-time restore (logical data loss).** Run `bash scripts/failure-tests/ft2-pitr-restore.sh` (15–30 min).
-
-  | ID | File | Must show |
-  |---|---|---|
-  | S46 | `evidence/failure-tests/S46-ft2-rpo.png` | terminal line `RPO exposure = …s` |
-  | S47 | `evidence/failure-tests/S47-ft2-restored-instance.png` | RDS → Databases: `…-ft2-restore` **Available** (take it *before* pressing Enter to delete) |
-  | S48 | `evidence/failure-tests/S48-ft2-rto.png` | terminal line `Restore available after …s` |
-
-- [ ] **8.3 FT3: network loss in one AZ (deny-all network ACL; FIS is blocked on this account).** Run `bash scripts/failure-tests/ft3-az-network-loss.sh` (7 min). It restores the network automatically, even if you press Ctrl+C.
-
-  | ID | File | Must show |
-  |---|---|---|
-  | S49 | `evidence/failure-tests/S49-ft3-nacl-fault.png` | VPC → Subnets → the `…-app-ap-southeast-1a` subnet → **Network ACL** tab showing `exam-platform-a3-prod-ft3-deny-all` (take it while the fault runs; the script prompts you) |
-  | S50 | `evidence/failure-tests/S50-ft3-terminal.png` | `failed_probes=… downtime_s=…` |
-  | S51 | `evidence/failure-tests/S51-ft3-dashboard.png` | API 5xx / Lambda errors rising during the 5 min, then back to 0 |
-
-  *(Optional, extra credit)* Apply the fix by setting `lambda_subnet_indexes = [1]` with `terraform apply` from your laptop. Run FT3 again and show far fewer failures.
-  - 📸 **S52** `evidence/failure-tests/S52-ft3-fix-retest.png`
-
-- [ ] **8.4 FT4: deleted assignment file.** Run `bash scripts/failure-tests/ft4-s3-delete-recover.sh`.
-
-  | ID | File | Must show |
-  |---|---|---|
-  | S53 | `evidence/failure-tests/S53-ft4-terminal.png` | `Recovered after …s, checksum IDENTICAL` |
-  | S54 | `evidence/failure-tests/S54-ft4-s3-versions.png` | S3 → bucket → `assignments/ft4-test/` with **Show versions** on: object versions and the delete marker. The script pauses and asks you to take it. |
-
-- [ ] **8.5 FT5: marking worker outage.** Run `bash scripts/failure-tests/ft5-marking-worker-outage.sh` (about 5 min).
-
-  | ID | File | Must show |
-  |---|---|---|
-  | S55 | `evidence/failure-tests/S55-ft5-concurrency-zero.png` | Lambda `exam-platform-a3-prod-marking` → Configuration → Concurrency = **0** (during the outage) |
-  | S56 | `evidence/failure-tests/S56-ft5-terminal.png` | `Backlog drained … s after restore; DLQ depth=…` |
-  | S57 | `evidence/failure-tests/S57-ft5-queue-depth.png` | dashboard *Queue depth* widget rising and then falling |
-  | S58 | `evidence/failure-tests/S58-ft5-dlq-alarm.png` | DLQ alarm email or CloudWatch alarm *In alarm* (if messages reached the DLQ) |
-
-- [ ] **8.6** Fill in every **Measured** and **Pass?** cell in `infra/failure-tests/README.md`. Then copy the RPO/RTO numbers into the verdict tables in `README.md` and `docs/cost-report.md` §6.
-
-## Phase 9: Real cost check and tear down (same day, about 30 min)
-
-- [ ] **9.1** Billing → **Cost Explorer**, *Daily*, grouped by **Service**, for the test days.
-  - 📸 **S59** `evidence/teardown/S59-cost-explorer.png`
-  - This shows what the tests actually cost. Mention it in the cost report: "actual spend during testing: $X".
-- [ ] **9.2** Commit the evidence:
-  ```bash
-  git add -A && git commit -m "Assignment 3 evidence [skip ci]" && git push
-  ```
-- [ ] **9.3** Actions → **Tear down** → *Run workflow* → type `DESTROY`. Wait about 20 min.
-  - 📸 **S60** `evidence/teardown/S60-teardown-green.png`
-- [ ] **9.4** Check in Singapore that RDS (including any `-ft2-restore`), Lambda, the VPC endpoints and the CloudFront distribution are gone.
-  - 📸 **S61** `evidence/teardown/S61-nothing-left.png`: RDS → Databases, empty
-- [ ] **9.5** Keep the bootstrap (state bucket + role) until the assignment is marked. It costs nothing.
-
-## Phase 10: Finish the documents (about 1 h)
-
-- [ ] **10.1** Search the repo for `☐` (VS Code: `Ctrl + Shift + F`). Replace each one with your measured value, or remove the row and explain why.
-- [ ] **10.2** In `README.md`, replace the video row with: *"Evidence: screenshots (agreed with the tutor in place of the video) – see `evidence/README.md`"*. This is already done for you; just check it.
-- [ ] **10.3** Re-read the **feasibility verdict** in `README.md` and `docs/cost-report.md` §6 and make sure every ✅ cites a number you measured.
-- [ ] **10.4** Final push: `git add -A && git commit -m "Assignment 3 final [skip ci]" && git push`. Open the repo on GitHub in a private window and check that every screenshot shows in `evidence/README.md`.
-
-## Final check against the rubric (10 marks)
-
-| Criterion | Full-marks requirement | Your evidence |
+| Test | Command | Screenshots (folder `evidence/failure-tests/`) |
 |---|---|---|
-| Architecture (2) | Design reflects cost **and** test findings; failure points marked; clear change log | S14, `architecture/README.md` SPOF table, `CHANGELOG.md` (C2 → S20/S21, C5 → S29–S40, C8 → S49–S52) |
-| Documentation (2) | Full cost breakdown with hidden costs; 4 strong comparisons; Region comparison; verdict backed by numbers | `docs/cost-report.md` §2–6, S12–S13, calculator totals |
-| Costed estimate (2) | Both profiles in the calculator; 3+ optimisations with savings | S04–S11 + CSV/PDF exports + links |
-| Failure tests (2) | 4 scenarios **measured** against RPO/RTO, with fixes | S41–S58, filled tables in `infra/failure-tests/README.md` |
-| Load test (2) | Bottleneck **proven with CloudWatch**, fixed, **re-tested**; two more reasoned | S29–S40, `docs/load-test.md` (B2, B3) |
+| **FT1** AZ loss of the DB primary | `bash scripts/failure-tests/ft1-az-db-failover.sh` | `ft1-before-az.png` (RDS → Configuration, take it **before** the run) · `ft1-terminal.png` (`downtime_s=…`, `marker FOUND`) · `ft1-after-az.png` · `ft1-rds-events.png` (RDS → Logs & events) · `ft1-sns-email.png` |
+| **FT2** point-in-time restore | `bash scripts/failure-tests/ft2-pitr-restore.sh` (15–30 min) | `ft2-rpo.png` (`RPO exposure = …s`) · `ft2-restored-instance.png` (take it **before** you press Enter) · `ft2-rto.png` (`Restore available after …s`) |
+| **FT3** network loss in one AZ (deny-all NACL) | `bash scripts/failure-tests/ft3-az-network-loss.sh` (7 min) | `ft3-nacl-fault.png` (VPC → Subnets → `…-app-ap-southeast-1a` → **Network ACL** tab, when the script prompts) · `ft3-terminal.png` · `ft3-dashboard.png` (5xx/errors during the fault) |
+| **FT4** deleted assignment file | `bash scripts/failure-tests/ft4-s3-delete-recover.sh` | `ft4-s3-versions.png` (when the script pauses: S3 → uploads bucket → `assignments/ft4-test/` → **Show versions**) · `ft4-terminal.png` |
+| **FT5** marking worker outage | `bash scripts/failure-tests/ft5-marking-worker-outage.sh` (about 5 min) | `ft5-concurrency-zero.png` (Lambda `…-marking` → Concurrency = 0, **during** the 3-min outage) · `ft5-terminal.png` · `ft5-queue-depth.png` · `ft5-dlq-alarm.png` (if messages reached the DLQ) |
+
+- After each test, send Claude the terminal output. Claude fills in the **Measured** and **Pass?** cells in `infra/failure-tests/README.md`.
+
+## Phase 9: Actual cost and tear down ⏳ ← you are here
+
+- [x] ~~Cost Explorer~~: no Billing access on the class account. Skipped; the test cost is estimated in `docs/cost-report.md` §8 instead.
+- [ ] Commit the evidence:
+  ```bash
+  git add -A && git commit -m "A3 evidence [skip ci]" && git push
+  ```
+- [ ] **Actions → Tear down → Run workflow → type `DESTROY`**, then wait about 20 min.
+  - 📸 **`teardown/teardown-green.png`**
+- [ ] In Singapore, check that nothing named `exam-platform-a3-prod` is left in RDS (including any `…-ft2-restore`), Lambda or VPC → Endpoints.
+  - 📸 **`teardown/nothing-left.png`**
+- [ ] Keep the bootstrap (state bucket + role) until the assignment is marked. It costs $0.
+
+## Phase 10: Pricing Calculator and finish ⬜ (no AWS needed)
+
+Follow `docs/calculator-inputs.md`. Region **Asia Pacific (Singapore)**; WAF has **4 rules**.
+
+| Estimate / step | Screenshot (folder `evidence/calculator/`) | Export |
+|---|---|---|
+| Normal month | `normal-month-summary.png` | `normal-month.csv`, `normal-month.pdf` |
+| Exam month | `exam-month-summary.png` | `exam-month.csv`, `exam-month.pdf` |
+| A2 baseline (2 NAT, `db.m6g.large` On-Demand, 90-day logs) | `a2-baseline-summary.png` | `a2-baseline.csv`, `a2-baseline.pdf` |
+| O1 NAT 2 → 0 (+ Secrets Manager endpoint) | `O1-remove-nat.png` | — |
+| O2 `m6g.large` → `t4g.medium` | `O2-right-size.png` | — |
+| O3 On-Demand → 1-yr Reserved, partial upfront | `O3-reserved.png` | — |
+| O5 logs 33 GB → 11 GB | `O5-logs.png` | — |
+| O4 S3 all Standard (to show the lifecycle saving) | `O4-s3-standard.png` | — |
+
+- [ ] Paste the 3 **share links** into `README.md` (*Links*) and the top of `docs/cost-report.md`.
+- [ ] Send Claude the 3 totals. Claude updates §2, §6 and §7 and the README if they differ from the model.
+- [ ] Search the repo for `☐` (VS Code: **Ctrl + Shift + F**). Every one must be filled or explained.
+- [ ] Final push:
+  ```bash
+  git add -A && git commit -m "Assignment 3 final [skip ci]" && git push
+  ```
+  Then open `evidence/README.md` on GitHub and check that every image shows.
+
+## Rubric check (10 marks)
+
+| Criterion | Evidence | Status |
+|---|---|---|
+| Architecture (2) | diagram PNG + SPOF table + change log C1–C14 (with real findings: names, FIS, WAF, Free plan) | ⏳ PNG missing |
+| Documentation (2) | `docs/cost-report.md`: costs, hidden costs, 5 comparisons, **measured** latency, verdict | ⏳ needs calculator totals |
+| Costed estimate (2) | 3 calculator estimates + O1–O5 screenshots + exports | ⬜ |
+| Failure tests (2) | FT1–FT5 measured + FT6 tabletop | ⬜ |
+| Load test (2) | before ✅ · proven with CloudWatch + WAF ✅ · fix ✅ · re-test ✅ (100 %) · B3/B4 reasoned ✅ | ✅ (screenshots left) |

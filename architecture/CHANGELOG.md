@@ -7,7 +7,7 @@ Each row names the finding that caused the change.
 
 | # | Area | Assignment 2 | Assignment 3 | Why (finding) | Effect |
 |---|---|---|---|---|---|
-| C1 | Region | us-east-1 (N. Virginia) | **ap-southeast-1 (Singapore)** | Brief, plus latency from Bhutan: preliminary minimum round trip 318 ms to N. Virginia vs 94 ms to Singapore (`scripts/measure-latency.sh`, 2026-11-19) | Every price re-checked for Singapore on 2026-11-19 |
+| C1 | Region | us-east-1 (N. Virginia) | **ap-southeast-1 (Singapore)** | Brief, plus latency from Bhutan: median round trip **364 ms to N. Virginia vs 145 ms to Singapore** (20 samples, `evidence/latency/`, 2026-11-20) | Every price re-checked for Singapore on 2026-11-19 |
 | C2 | Outbound network | 2 NAT gateways (one per AZ) + SQS endpoint | **0 NAT gateways.** S3 gateway endpoint plus SQS and **Secrets Manager** interface endpoints (the proxy reads its secret privately). | Cost: in the A2 design moved to Singapore, the NAT gateways are the 2nd most expensive item ($86/month) and carried no traffic the endpoints could not carry | −$809/year. One less SPOF |
 | C3 | Database size | `db.t4g.micro` demo, `db.m6g.large` "for exam week" all year | **`db.t4g.medium` in normal months, `db.t4g.large` in exam months** (`exam-month.tfvars` / `DB_INSTANCE_CLASS`) | Load: micro collapses at the peak (B1). Cost: m6g.large all year is the biggest single cost | −$1,789/year vs m6g.large all year |
 | C4 | Database pricing | On-Demand | **1-year Reserved Instance, `db.t4g.medium` Multi-AZ, partial upfront**. Size-flexible, so it covers half of the `t4g.large` in exam months. | Cost: RDS is the #1 cost and runs 24/7 | −$443/year |

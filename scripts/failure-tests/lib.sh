@@ -5,7 +5,10 @@
 # Env for tests that write data: FT_STUDENT_EMAIL, FT_PASSWORD, FT_EXAM_ID
 set -euo pipefail
 
-tfo() { terraform -chdir=infra output -raw "$1"; }
+# Windows AWS CLI ends lines with \r\n. Bash keeps the \r inside variables, and AWS then rejects
+# the value ("Input can't contain control characters"), so strip it from every aws call.
+aws() { command aws "$@" | tr -d '\r'; }
+tfo() { terraform -chdir=infra output -raw "$1" | tr -d '\r'; }
 APP_URL=$(tfo app_url)
 REGION=$(tfo region)
 DB_ID=$(tfo db_instance_id)

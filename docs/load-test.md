@@ -80,21 +80,40 @@
 | F3 | **Cap API Lambda concurrency** (Free plan, because RDS Proxy and bigger instances are blocked) | Each API Lambda holds at most one DB connection, so the cap bounds the connections. 40 API + up to 20 marking + 10 upload stays under the about 80 usable connections of `db.t4g.micro` (the before run reached 67 with 133 Lambdas). Overflow gets a fast throttle that autosave retries 30 s later, instead of exhausting the database for everyone. | `API_RESERVED_CONCURRENCY=40` |
 | F3-prod | **RDS Proxy** (production, paid plan) | Multiplexes hundreds of Lambda connections onto a few database connections and speeds up failover (FT1) | `DB_USE_RDS_PROXY=true` |
 
-## 4. AFTER run: results (fill in after the re-test)
+## 4. AFTER run: results (2026-11-20, 12:55:48–13:06:19 UTC)
 
-| Measure | Before | After |
-|---|---|---|
-| Success rate | 68.48 % | ☐ |
-| HTTP 403 (WAF) | 11,750 | ☐ |
-| WAF `BlockedRequests` | 11,762 | ☐ |
-| Latency p95 (script) | 10,198 ms | ☐ |
-| API `Latency` p95 (CloudWatch) | 214.9 ms | ☐ |
-| RDS `DatabaseConnections` max | 67 | ☐ |
-| RDS `FreeableMemory` min | 57 MB | ☐ |
-| API Lambda `ConcurrentExecutions` max | 133 | ☐ |
-| Lambda `Throttles` (sum) | 0 | ☐ (with F3, a few are fine) |
+**Configuration:**
+- WAF `RateLimitPerStudent` (1,000 / 5 min per token) plus the `RateLimitPerIp` backstop at 150,000.
+- API Lambda reserved concurrency **40**.
+- Still `db.t4g.micro` with no RDS Proxy (the Free plan blocks both).
 
-**Conclusion:** ☐ (one sentence: did the fix remove B1 and keep B2 under its limit?)
+**Evidence:**
+- Script: [`after-2026-11-20T12-55-48-826Z.json`](../evidence/load-test/after-2026-11-20T12-55-48-826Z.json)
+- CloudWatch: [`after-metrics.json`](../evidence/cloudwatch/after-metrics.json) (window 12:54–13:08 UTC)
+- WAF metrics (us-east-1)
+
+| Measure | Before | After | Change |
+|---|---|---|---|
+| Requests sent | 45,079 | 47,273 (3,000 starts + 44,273 autosaves) | full peak delivered |
+| **Success rate** | 68.48 % | **100 %** (47,273 × HTTP 200) | ✅ +31.5 points |
+| HTTP 403 (WAF) | 11,750 | **0** | ✅ B1 removed |
+| WAF `BlockedRequests` (all rules) | 11,762 | **0** (47,273 allowed) | ✅ |
+| Network errors + timeouts (client) | 2,460 | **0** | ✅ |
+| Latency p50 / p95 / p99 (script, from Bhutan) | 511 / 10,198 / 10,682 ms | **343 / 885 / 1,677 ms** | ✅ p95 −91 % |
+| Peak requests per second | 153.5 | 106.5 | matches the brief (~100/s) |
+| API Gateway `4xx` / `5xx` | 0 / 0 | 0 / 0 | |
+| API `Latency` p95 (CloudWatch, worst minute) | 214.9 ms | 914 ms | ⚠️ higher during the 5-min ramp (cold starts; Lambda `Duration` p95 up to 410 ms), but still under 1 s |
+| RDS `DatabaseConnections` max | 67 | **28** | ✅ −58 %, well under the about 80 limit |
+| RDS `FreeableMemory` min | 57 MB | **92 MB** | ✅ more headroom |
+| RDS `CPUUtilization` max | 10.2 % | 12.0 % | CPU still not a limit |
+| API Lambda `ConcurrentExecutions` max | 133 | **34** (cap 40) | ✅ bounded |
+| Lambda `Throttles` / `Errors` | 0 / 0 | **0 / 0** | the cap was never hit |
+
+**Conclusion:**
+- **B1 (WAF per-IP rate limit) is proven and removed.** Moving to a per-student limit took the blocked requests from 11,762 to **0**, and the success rate from **68.5 % to 100 %** for 3,000 students starting within 5 minutes.
+- **B2 is now bounded.** Capping the API Lambda at 40 kept the `db.t4g.micro` database at **28 connections (from 67)**, with more free memory, and caused **no throttles**.
+- So the exam peak is met on the smallest instance the Free plan allows.
+- The production exam month still uses `db.t4g.large` + RDS Proxy (as costed). This gives about 10× the connection headroom, so the 40-Lambda cap can be lifted for bigger exams.
 
 ## 5. More bottlenecks (reasoned, not load-tested)
 
