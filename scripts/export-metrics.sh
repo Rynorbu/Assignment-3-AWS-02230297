@@ -8,7 +8,7 @@ LABEL=${1:?label}; START=${2:?start}; END=${3:?end}
 REGION=$(terraform -chdir=infra output -raw region)
 DB_ID=$(terraform -chdir=infra output -raw db_instance_id)
 API_ID=$(terraform -chdir=infra output -raw api_endpoint | sed -E 's#https://([^.]+)\..*#\1#')
-FN="exam-platform-prod-api"
+FN="exam-platform-a3-prod-api"
 mkdir -p evidence/cloudwatch
 cat > /tmp/queries.json <<EOF
 [

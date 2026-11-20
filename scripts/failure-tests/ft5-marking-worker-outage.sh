@@ -8,9 +8,9 @@
 source "$(dirname "$0")/lib.sh"
 OUT="$EVID/ft5-$(date +%Y%m%d-%H%M%S)"
 OUTAGE=${1:-180}
-FN="exam-platform-prod-marking"
-Q=$(aws sqs get-queue-url --queue-name exam-platform-prod-marking --query QueueUrl --output text)
-DLQ=$(aws sqs get-queue-url --queue-name exam-platform-prod-marking-dlq --query QueueUrl --output text)
+FN="exam-platform-a3-prod-marking"
+Q=$(aws sqs get-queue-url --queue-name exam-platform-a3-prod-marking --query QueueUrl --output text)
+DLQ=$(aws sqs get-queue-url --queue-name exam-platform-a3-prod-marking-dlq --query QueueUrl --output text)
 depth() { aws sqs get-queue-attributes --queue-url "$1" --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible --query 'sum(values(Attributes)[].to_number(@))' --output text 2>/dev/null || echo "?"; }
 
 aws lambda put-function-concurrency --function-name "$FN" --reserved-concurrent-executions 0 >/dev/null

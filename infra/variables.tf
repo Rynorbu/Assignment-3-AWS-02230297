@@ -1,7 +1,7 @@
 variable "project" {
   description = "Short project name used as a prefix for resources"
   type        = string
-  default     = "exam-platform"
+  default     = "exam-platform-a3" # Assignment 3: unique name, the shared class account already has an "exam-platform-prod" stack
 }
 
 variable "environment" {

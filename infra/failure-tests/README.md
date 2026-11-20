@@ -13,7 +13,7 @@ Every scenario has a script in [`scripts/failure-tests/`](../../scripts/failure-
 |---|---|---|---|---|---|
 | FT1 | AZ hosting the primary DB is lost | Database | `reboot-db-instance --force-failover` | 5 min | 1 h |
 | FT2 | Answers wiped by a bad change (logical corruption) | Database | Point-in-time restore | 5 min | 1 h |
-| FT3 | Network of one AZ lost for the Lambda subnet | Compute / network | AWS FIS `aws:network:disrupt-connectivity` | 5 min | 1 h |
+| FT3 | Network of one AZ lost for the Lambda subnet | Compute / network | Deny-all network ACL on the AZ-a app subnet (the same fault FIS `aws:network:disrupt-connectivity` injects) | 5 min | 1 h |
 | FT4 | Submitted assignment file deleted | Storage | `aws s3 rm` on a versioned object | 5 min | 1 h |
 | FT5 | Marking worker down during submissions | Async | Lambda reserved concurrency = 0 | 5 min | 1 h |
 | FT6 | Whole Singapore Region unavailable (tabletop exercise, not executed) | Region | — | 5 min | 1 h |
@@ -85,9 +85,9 @@ export FT_STUDENT_EMAIL=student1@example.com FT_PASSWORD='YourPass123' FT_EXAM_I
 **Recovery runbook (the fix):**
 
 ```bash
-aws rds modify-db-instance --db-instance-identifier exam-platform-prod-db --new-db-instance-identifier exam-platform-prod-db-broken --apply-immediately
-aws rds modify-db-instance --db-instance-identifier exam-platform-prod-db-ft2-restore --new-db-instance-identifier exam-platform-prod-db --apply-immediately
-aws rds modify-db-instance --db-instance-identifier exam-platform-prod-db --multi-az --apply-immediately   # online
+aws rds modify-db-instance --db-instance-identifier exam-platform-a3-prod-db --new-db-instance-identifier exam-platform-a3-prod-db-broken --apply-immediately
+aws rds modify-db-instance --db-instance-identifier exam-platform-a3-prod-db-ft2-restore --new-db-instance-identifier exam-platform-a3-prod-db --apply-immediately
+aws rds modify-db-instance --db-instance-identifier exam-platform-a3-prod-db --multi-az --apply-immediately   # online
 ```
 
 - Because the endpoint name is unchanged, there is no redeploy, and Terraform state still matches.
@@ -95,13 +95,15 @@ aws rds modify-db-instance --db-instance-identifier exam-platform-prod-db --mult
 
 ---
 
-## FT3: Network loss in one AZ for the Lambda subnet (AWS FIS)
+## FT3: Network loss in one AZ for the Lambda subnet (deny-all network ACL)
 
-**Script:** `scripts/failure-tests/ft3-az-network-loss.sh`. Deploy with `ENABLE_FIS=true` first.
+**Script:** `scripts/failure-tests/ft3-az-network-loss.sh`.
+
+**Why not AWS FIS:** the first deploy with `ENABLE_FIS=true` failed with `SubscriptionRequiredException`, because the AWS Free plan account cannot use Fault Injection Service. The script injects the same fault by hand, and its `trap` puts the original network ACL back even if the script is interrupted. `infra/fis.tf` is kept, switched off, for a paid account.
 
 **What happens:**
-- The FIS template [`infra/fis.tf`](../fis.tf) puts a deny-all network ACL on the **app subnet in the first AZ** for 5 minutes.
-- The script calls `/api/health` every 2 seconds for 7 minutes.
+- The script moves the **app subnet in the first AZ** (`ap-southeast-1a`) to a new network ACL that denies all traffic, for 5 minutes, then restores the original ACL.
+- The script calls `/api/health` every 2 seconds during the fault and for 2 minutes after it.
 
 **Expected impact:**
 - Lambda does **not** health-check its subnets. Execution environments in the broken subnet cannot reach RDS or the SQS endpoint, so their requests time out after 5 seconds (`connectionTimeout`).
@@ -119,7 +121,7 @@ aws rds modify-db-instance --db-instance-identifier exam-platform-prod-db --mult
 2. Keep the client-side retry.
 3. Alarm on the API 5xx rate. It already exists and triggers within 1–2 minutes.
 
-FIS costs about $0.10 per action-minute, so one run costs about $0.50.
+Cost: $0. Network ACLs are free.
 
 ---
 

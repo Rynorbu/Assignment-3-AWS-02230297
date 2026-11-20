@@ -65,7 +65,7 @@ flowchart TB
     SM["Secrets Manager"]
     CW["CloudWatch: 30-day logs 🆕<br/>alarms · load-test dashboard 🆕"]
     BK["AWS Backup daily 35d + monthly 5y<br/>🆕 optional copy → ap-south-1"]
-    FIS["AWS FIS template 🆕 (FT3)"]
+    FIS["FT3 fault: deny-all NACL 🆕<br/>(AWS FIS blocked on Free plan)"]
   end
 
   subgraph DR["ap-south-1 Mumbai (optional DR) 🆕"]

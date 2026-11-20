@@ -28,7 +28,7 @@ Your tutor agreed that **screenshots replace the video**. Every screenshot below
 
 ## Phase 0: Preparation (day 1, about 40 min). Start early: some approvals take days.
 
-- [ ] **0.1 Check the A2 stack is really gone.** In the console, Region **N. Virginia**, check that nothing named `exam-platform-prod` remains in RDS, Lambda or IAM → Roles.
+- [ ] **0.1 Check the A2 stack is really gone.** In the console, Region **N. Virginia**, check that nothing named `exam-platform-a3-prod` remains in RDS, Lambda or IAM → Roles.
   - The A3 stack reuses the same resource names, and IAM role names are global, so leftovers would clash.
   - If something remains, run the A2 repo's **Tear down** workflow first.
 - [ ] **0.2 Check your tools** (Git Bash):
@@ -134,7 +134,6 @@ Follow `docs/calculator-inputs.md` line by line. **Region = Asia Pacific (Singap
   | `DB_INSTANCE_CLASS` | `db.t4g.micro` ← **baseline for the "before" load test** |
   | `DB_USE_RDS_PROXY` | `false` ← baseline |
   | `DB_BACKUP_RETENTION_DAYS` | `1` (Free plan) or leave out (7) |
-  | `ENABLE_FIS` | `true` |
 
   Do **not** set `TF_STATE_REGION` (the new bucket is in Singapore).
   - 📸 **S16** `evidence/deploy/S16-github-variables.png`
@@ -161,7 +160,7 @@ Follow `docs/calculator-inputs.md` line by line. **Region = Asia Pacific (Singap
   | S24 | `evidence/deploy/S24-lambda-arm64.png` | Lambda → Functions | functions listed with **arm64** |
   | S25 | `evidence/deploy/S25-backup-plan.png` | AWS Backup → Backup plans → plan | daily 35 d + monthly 1,825 d rules |
   | S26 | `evidence/deploy/S26-s3-lifecycle.png` | S3 → uploads bucket → **Management** | lifecycle rule (IA → Glacier IR → Deep Archive → expire) |
-  | S27 | `evidence/deploy/S27-dashboard.png` | CloudWatch → Dashboards → `exam-platform-prod` | the dashboard with the new A3 rows |
+  | S27 | `evidence/deploy/S27-dashboard.png` | CloudWatch → Dashboards → `exam-platform-a3-prod` | the dashboard with the new A3 rows |
 - [ ] **5.7 Users and test exam:**
   ```bash
   bash scripts/seed-users.sh admin@<you>.com tutor@<you>.com student@<you>.com 'Passw0rd1234'
@@ -185,7 +184,7 @@ Follow `docs/calculator-inputs.md` line by line. **Region = Asia Pacific (Singap
   - 📸 **S30** `evidence/load-test/S30-before-dashboard.png`: the whole dashboard
   - 📸 **S31** `evidence/load-test/S31-before-rds-connections.png`: enlarge the *RDS connections / memory / write latency* widget (click ⋮ → *View in metrics*)
   - 📸 **S32** `evidence/load-test/S32-before-api-errors.png`: enlarge *API requests / errors* and *API Lambda throttles / errors*
-- [ ] **6.3 Prove the cause from the logs.** CloudWatch → **Logs Insights**, log group `/aws/lambda/exam-platform-prod-api`, same time range:
+- [ ] **6.3 Prove the cause from the logs.** CloudWatch → **Logs Insights**, log group `/aws/lambda/exam-platform-a3-prod-api`, same time range:
   ```
   fields @timestamp, @message
   | filter @message like /too many|remaining connection slots|timeout|ECONNREFUSED|Connection terminated/
@@ -237,11 +236,11 @@ export FT_STUDENT_EMAIL=student@<you>.com FT_PASSWORD='Passw0rd1234' FT_EXAM_ID=
   | S47 | `evidence/failure-tests/S47-ft2-restored-instance.png` | RDS → Databases: `…-ft2-restore` **Available** (take it *before* pressing Enter to delete) |
   | S48 | `evidence/failure-tests/S48-ft2-rto.png` | terminal line `Restore available after …s` |
 
-- [ ] **8.3 FT3: network loss in one AZ (AWS FIS).** Run `bash scripts/failure-tests/ft3-az-network-loss.sh` (7 min).
+- [ ] **8.3 FT3: network loss in one AZ (deny-all network ACL; FIS is blocked on this account).** Run `bash scripts/failure-tests/ft3-az-network-loss.sh` (7 min). It restores the network automatically, even if you press Ctrl+C.
 
   | ID | File | Must show |
   |---|---|---|
-  | S49 | `evidence/failure-tests/S49-ft3-fis-experiment.png` | FIS → Experiments → the experiment **Completed**, with its timeline |
+  | S49 | `evidence/failure-tests/S49-ft3-nacl-fault.png` | VPC → Subnets → the `…-app-ap-southeast-1a` subnet → **Network ACL** tab showing `exam-platform-a3-prod-ft3-deny-all` (take it while the fault runs; the script prompts you) |
   | S50 | `evidence/failure-tests/S50-ft3-terminal.png` | `failed_probes=… downtime_s=…` |
   | S51 | `evidence/failure-tests/S51-ft3-dashboard.png` | API 5xx / Lambda errors rising during the 5 min, then back to 0 |
 
@@ -259,7 +258,7 @@ export FT_STUDENT_EMAIL=student@<you>.com FT_PASSWORD='Passw0rd1234' FT_EXAM_ID=
 
   | ID | File | Must show |
   |---|---|---|
-  | S55 | `evidence/failure-tests/S55-ft5-concurrency-zero.png` | Lambda `exam-platform-prod-marking` → Configuration → Concurrency = **0** (during the outage) |
+  | S55 | `evidence/failure-tests/S55-ft5-concurrency-zero.png` | Lambda `exam-platform-a3-prod-marking` → Configuration → Concurrency = **0** (during the outage) |
   | S56 | `evidence/failure-tests/S56-ft5-terminal.png` | `Backlog drained … s after restore; DLQ depth=…` |
   | S57 | `evidence/failure-tests/S57-ft5-queue-depth.png` | dashboard *Queue depth* widget rising and then falling |
   | S58 | `evidence/failure-tests/S58-ft5-dlq-alarm.png` | DLQ alarm email or CloudWatch alarm *In alarm* (if messages reached the DLQ) |

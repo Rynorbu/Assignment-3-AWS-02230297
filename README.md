@@ -65,7 +65,7 @@ The pipeline is the same as Assignment 2: bootstrap, then GitHub variables, then
 | `DB_INSTANCE_CLASS` | `db.t4g.medium` (normal) / `db.t4g.large` (exam month) | Seasonal sizing (O2) |
 | `DB_USE_RDS_PROXY` | `true` on a paid plan (`false` on the AWS Free plan) | Load-test fix |
 | `API_RESERVED_CONCURRENCY` | `60` only when there is no RDS Proxy | Free-plan load-test fix |
-| `ENABLE_FIS` | `true` while running FT3 | Fault Injection template |
+| `ENABLE_FIS` | leave **unset** (`false`) | AWS FIS is blocked on the Free plan; FT3 uses a deny-all network ACL instead |
 | `ENABLE_DR_BACKUP_COPY` | `true` (optional) | Cross-Region backup copy to Mumbai |
 
 
@@ -81,7 +81,7 @@ terraform apply -var-file=terraform.tfvars -var-file=exam-month.tfvars   # exam 
 
 ## Tear down
 
-Run **Actions → Tear down → `DESTROY`** (or `terraform destroy`). Then check in **Singapore**, and in **Mumbai** if the DR copy was on, that nothing named `exam-platform-prod` is left: RDS, Lambda, CloudFront, the VPC endpoint, Backup vaults and the FIS template. The RDS Proxy and the Multi-AZ database cost about **$5 a day**, so destroy the stack as soon as the evidence is captured.
+Run **Actions → Tear down → `DESTROY`** (or `terraform destroy`). Then check in **Singapore**, and in **Mumbai** if the DR copy was on, that nothing named `exam-platform-a3-prod` is left: RDS, Lambda, CloudFront, the VPC endpoint, Backup vaults. The RDS Proxy and the Multi-AZ database cost about **$5 a day**, so destroy the stack as soon as the evidence is captured.
 
 ## Repository layout
 

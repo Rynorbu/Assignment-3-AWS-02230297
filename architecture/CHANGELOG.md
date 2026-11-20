@@ -15,9 +15,10 @@ Each row names the finding that caused the change.
 | C6 | Logs | 90-day retention | **30-day** retention | Cost: logs are not needed after marking; CloudTrail keeps the audit trail | Small saving; less personal data stored |
 | C7 | Monitoring | Generic dashboard | **Load-test rows added:** Lambda throttles/concurrency/p95, RDS connections/memory/credits, Proxy borrow latency | Rubric: the bottleneck must be *proven* with CloudWatch | Evidence for the load test |
 | C8 | AZ evacuation | Lambda subnets fixed | **`lambda_subnet_indexes`** variable | FT3: Lambda keeps using a subnet whose network is broken | RTO for a partial AZ fault ≈ 3 min |
-| C9 | Chaos testing | Manual failover script only | **AWS FIS template** (`infra/fis.tf`) plus 5 failure-test scripts | Rubric: at least 4 measured scenarios | Repeatable tests |
+| C9 | Chaos testing | Manual failover script only | **5 failure-test scripts.** FT3 uses a deny-all network ACL, because AWS FIS returned `SubscriptionRequiredException` on this account. The FIS template (`infra/fis.tf`) is kept, switched off. | Rubric: at least 4 measured scenarios | Repeatable tests |
 | C10 | Disaster recovery | Backups in one Region | **Optional cross-Region copy to ap-south-1** (`ENABLE_DR_BACKUP_COPY`) | FT6: Region loss would lose every backup | RPO 24 h / RTO 2–4 h for Region loss, ≈ $3–5/month |
 | C11 | Backups (cost note) | `cold_storage_after = 90` on monthly backups | Kept, but **documented as having no effect for RDS** | Cost: RDS snapshots cannot move to cold storage, so the 5-year monthlies stay warm | Costed honestly |
+| C13 | Resource names | `exam-platform-prod-*` | **`exam-platform-a3-prod-*`** (`project = "exam-platform-a3"`) | The first Singapore deploy failed: global names (IAM roles, S3 buckets, WAF, CloudFront OAC) clashed with an existing `exam-platform-prod` stack in the shared account | A3 can be deployed and destroyed without touching any other stack |
 | C12 | Deploy settings | — | New GitHub variables: `DB_INSTANCE_CLASS`, `API_RESERVED_CONCURRENCY`, `ENABLE_FIS`, `ENABLE_DR_BACKUP_COPY` | Seasonal sizing must be a one-line change | Exam-month switch through CI |
 
 ## Kept from Assignment 2 (re-checked and still the best choice)

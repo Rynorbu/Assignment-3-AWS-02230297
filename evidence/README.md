@@ -115,11 +115,11 @@ Scenarios, expected impact, measurements and fixes: [`infra/failure-tests/README
 |---|---|---|
 | ![](failure-tests/S46-ft2-rpo.png) | ![](failure-tests/S47-ft2-restored-instance.png) | ![](failure-tests/S48-ft2-rto.png) |
 
-**FT3: network loss in one AZ (AWS FIS)**
+**FT3: network loss in one AZ (deny-all network ACL; AWS FIS is blocked on this account)**
 
-| S49 FIS experiment | S50 Probe results | S51 Errors on the dashboard | S52 Re-test after the fix (optional) |
+| S49 Deny-all ACL on the AZ-a subnet | S50 Probe results | S51 Errors on the dashboard | S52 Re-test after the fix (optional) |
 |---|---|---|---|
-| ![](failure-tests/S49-ft3-fis-experiment.png) | ![](failure-tests/S50-ft3-terminal.png) | ![](failure-tests/S51-ft3-dashboard.png) | ![](failure-tests/S52-ft3-fix-retest.png) |
+| ![](failure-tests/S49-ft3-nacl-fault.png) | ![](failure-tests/S50-ft3-terminal.png) | ![](failure-tests/S51-ft3-dashboard.png) | ![](failure-tests/S52-ft3-fix-retest.png) |
 
 **FT4: deleted assignment file**
 
