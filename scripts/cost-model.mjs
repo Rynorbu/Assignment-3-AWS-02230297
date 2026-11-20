@@ -98,7 +98,7 @@ function month(profile, region = 'sgp', opts = {}) {
     'Lambda (arm64) requests + compute': u.apiRequests * 1.05 * p.lambdaReq + u.apiRequests * (u.lambdaMs / 1000) * (u.lambdaMb / 1024) * p.lambdaGbSArm + 43200 * 0.2 * 0.5 * p.lambdaGbSArm,
     'API Gateway HTTP API': u.apiRequests * p.apiHttp,
     'CloudFront data out + requests': (u.staticGb + u.apiGbOut) * p.cfGb + (u.apiRequests * 1.07) * p.cfReq,
-    'WAF (web ACL + 3 rules + requests)': p.wafAcl + 3 * p.wafRule + u.apiRequests * 1.07 * p.wafReq,
+    'WAF (web ACL + 4 rules + requests)': p.wafAcl + 4 * p.wafRule + u.apiRequests * 1.07 * p.wafReq,
     'S3 storage (uploads, 5-yr steady state)': o.lifecycle
       ? S3_STEADY.std * p.s3Std + S3_STEADY.ia * p.s3Ia + S3_STEADY.gir * p.s3Gir + S3_STEADY.gda * p.s3Gda
       : S3_TOTAL_GB * p.s3Std,

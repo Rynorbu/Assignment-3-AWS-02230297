@@ -14,16 +14,16 @@ There are 8,000 students and 400 staff. Normal months have 300–500 concurrent 
 | | |
 |---|---|
 | **Final design** | CloudFront + WAF → API Gateway HTTP API → Lambda arm64 in 2 AZs → **RDS Proxy** → RDS PostgreSQL **Multi-AZ** (`t4g.medium`, or `t4g.large` in exam months). S3 with lifecycle to Deep Archive, SQS + DLQ, Cognito, KMS, AWS Backup. **No NAT gateways.** |
-| **Cost** | Normal month **$325.48**, exam month **$521.74**. Annual **$4,298.28**. Average **$358.19/month**. **$0.54 per student per year.** |
-| **Saving vs Assignment 2** (moved to Singapore unchanged) | $7,347.68 → $4,298.28 a year (**−42 %**) from removing the NATs, seasonal sizing, a Reserved Instance and shorter log retention |
+| **Cost** | Normal month **$326.48**, exam month **$522.74**. Annual **$4,310.28**. Average **$359.19/month**. **$0.54 per student per year.** |
+| **Saving vs Assignment 2** (moved to Singapore unchanged) | $7,359.68 → $4,310.28 a year (**−42 %**) from removing the NATs, seasonal sizing, a Reserved Instance and shorter log retention |
 | **Biggest costs** | RDS instance (38 %), VPC interface endpoints (11 %), CloudFront (10 %) |
-| **Where it breaks** | DB connections at the exam peak without a proxy (load test B1); Lambda concurrency quota (B2); SES rate when results are released (B3); loss of the whole Region (FT6, accepted) |
+| **Where it breaks** | **WAF per-IP rate limit blocked 26 % of the exam peak** (load test B1, proven: 11,762 blocked requests); DB connections/memory on a small instance without a proxy (B2); Lambda quota (B3); SES rate on result release (B4); loss of the whole Region (FT6, accepted) |
 
 ## Feasibility verdict: **FEASIBLE**
 
 | Requirement | Result |
 |---|---|
-| Budget ≤ $1,000/month (yearly average) | ✅ $358.19 (36 % of budget). Exam month $521.74. |
+| Budget ≤ $1,000/month (yearly average) | ✅ $359.19 (36 % of budget). Exam month $522.74. |
 | Peak: 3,000 students start within 5 min | ✅ after the fix: RDS Proxy + `t4g.large` + Lambda quota ≥ 1,000. Re-test: ☐ % success, p95 ☐ ms ([load test](docs/load-test.md)) |
 | RPO 5 min | ✅ AZ loss 0 s (FT1) · data corruption ☐ s (FT2) · files 0 s (FT4) |
 | RTO 1 h | ✅ AZ failover ☐ s (FT1) · point-in-time restore ☐ min (FT2) · AZ network ☐ s (FT3) |

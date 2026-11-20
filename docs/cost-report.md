@@ -37,7 +37,7 @@
 | Lambda arm64 (requests + GB-s + 1-min scheduler) | $10.76 | $16.71 | $141.03 |
 | API Gateway HTTP API ($1.25 per million) | $18.00 | $28.00 | $236.00 |
 | CloudFront (data out + HTTPS requests) | $33.13 | $51.20 | $433.70 |
-| WAF (web ACL + 3 rules + $0.60 per million requests) | $17.24 | $22.38 | $217.21 |
+| WAF (web ACL + 4 rules + $0.60 per million requests) | $18.24 | $23.38 | $229.21 |
 | S3 uploads storage (lifecycle, year-5 steady state) | $26.50 | $26.50 | $318.00 |
 | S3 requests + lifecycle transitions | $1.03 | $0.34 | $11.03 |
 | **Data transfer out** (S3 → tutors, $0.12/GB) 🔍 | $14.40 | $7.20 | $158.40 |
@@ -51,15 +51,15 @@
 | Cognito (8,400 MAU, below the 10,000 free tier) | $0.00 | $0.00 | $0.00 |
 | Route 53 hosted zone | $0.50 | $0.50 | $6.00 |
 | EventBridge schedule, CloudTrail management trail | $0.00 | $0.00 | $0.00 |
-| **Total** | **$325.48** | **$521.74** | **$4,298.28** |
+| **Total** | **$326.48** | **$522.74** | **$4,310.28** |
 
 | Headline | Value |
 |---|---|
-| Annual total | **$4,298.28** (on-demand without the RI: $4,741.08) |
-| Average per month | **$358.19**, which is **36 % of the $1,000 budget** |
-| Most expensive month (exam) | $521.74, still under the monthly budget |
-| **Cost per student per year** | **$0.54** ($4,298.28 / 8,000). Per user including staff: $0.51 |
-| Cost per exam attempt (exam months only) | about $0.013 ($1,043.48 / 80,000 attempts in the two exam months, an upper bound because it includes normal traffic) |
+| Annual total | **$4,310.28** (on-demand without the RI: $4,753.08) |
+| Average per month | **$359.19**, which is **36 % of the $1,000 budget** |
+| Most expensive month (exam) | $522.74, still under the monthly budget |
+| **Cost per student per year** | **$0.54** ($4,310.28 / 8,000). Per user including staff: $0.51 |
+| Cost per exam attempt (exam months only) | about $0.013 ($1,045.48 / 80,000 attempts in the two exam months, an upper bound because it includes normal traffic) |
 | Cash-flow note | The partial-upfront RI needs **$668 upfront** in month 1. This is already spread across the monthly figures above. |
 
 ### 2.1 Hidden costs (🔍), shown separately
@@ -150,7 +150,7 @@ Steady state is 7.2 TB, about 720,000 objects.
 
 | | **Singapore ap-southeast-1** ✅ | Mumbai ap-south-1 |
 |---|---|---|
-| Annual cost (on-demand, same design) | $4,741 | **$4,279 (−10 %)** |
+| Annual cost (on-demand, same design) | $4,753 | **$4,291 (−10 %)** |
 | Main price differences | RDS t4g.medium Multi-AZ $0.203/h · API Gateway $1.25/M · Proxy $0.018 | $0.167/h (−18 %) · $1.05/M (−16 %) · $0.017 |
 | AZs / services needed | 3 AZs, all services available | 3 AZs, all services available |
 | Latency from Bhutan (TCP round trip) | Preliminary check on 2026-11-19 (5 samples): **min 94 ms**, median 139 ms. Full 20-sample run: ☐ | Preliminary: **min 74 ms**, median noisy. Full run: ☐ |
@@ -170,7 +170,7 @@ Also capture a screenshot of <https://www.cloudping.info> from the same connecti
 
 | Requirement | Target | Evidence | Result |
 |---|---|---|---|
-| **Budget** | ≤ $1,000 / month, yearly average | $358.19 average. Even the unoptimised A2 design is $612.31. The exam month is $521.74. | ✅ **Meets.** 64 % headroom |
+| **Budget** | ≤ $1,000 / month, yearly average | $359.19 average. Even the unoptimised A2 design is $613.31. The exam month is $522.74. | ✅ **Meets.** 64 % headroom |
 | **Peak load** | 3,000 students start within 5 min | Load test: A2 sizing fails (B1). The fixed design (t4g.large + Proxy, Lambda quota ≥ 1,000) ☐ re-tested at ☐ % success, p95 ☐ ms | ✅ **Meets after the fix**, *if the re-test confirms it* |
 | **RPO 5 min** | ≤ 5 min of answers lost | AZ loss: 0 (FT1, synchronous standby). Corruption: ☐ s (FT2, PITR). Files: 0 (FT4, versioning). Queues: 0 (FT5). | ✅ Meets |
 | **RTO 1 h** | ≤ 60 min | AZ loss ☐ s (FT1). PITR ☐ min (FT2). Partial AZ network ☐ s (FT3). | ✅ Meets for AZ and data failures |
@@ -179,7 +179,7 @@ Also capture a screenshot of <https://www.cloudping.info> from the same connecti
 | Files kept 5 years | yes | Lifecycle expires at 1,825 days. Monthly DB backups kept 1,825 days. | ✅ |
 
 **Verdict: FEASIBLE.**
-- The platform costs about **$4,298 a year (≈ $0.54 per student)**, about a third of the budget.
+- The platform costs about **$4,310 a year (≈ $0.54 per student)**, about a third of the budget.
 - It meets RPO and RTO for every AZ-level and data-level failure.
 - It handles the exam peak once the database is pooled (RDS Proxy) and sized up for exam months, and the Lambda concurrency quota is raised to 1,000.
 - The remaining risk is the loss of the whole Singapore Region. It is accepted, with optional cross-Region backups to Mumbai at about $3–5 a month.
@@ -195,7 +195,7 @@ Each saving is the difference between two runs of `scripts/cost-model.mjs` and b
 | O3 | 1-year partial-upfront RI on `db.t4g.medium` Multi-AZ | On-Demand | RI (size-flexible) | **$442.80** |
 | O4 | S3 lifecycle to IA → Glacier IR → Deep Archive (steady state) | All S3 Standard, $180/month | $26.50/month | **$1,837.76** |
 | O5 | CloudWatch Logs retention 90 → 30 days | 90 d | 30 d | $8.64 (small; ingestion is the real cost) |
-| **Total** | A2 design in Singapore ($7,347.68/yr) → final ($4,298.28/yr) | | | **$3,049 (−42 %)** |
+| **Total** | A2 design in Singapore ($7,359.68/yr) → final ($4,310.28/yr) | | | **$3,049 (−42 %)** |
 
 O4 was already in A2, so it is shown as a saving against the naive option. The A2 → A3 total counts O1 + O2 + O3 + O5 together.
 

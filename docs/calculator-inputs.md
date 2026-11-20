@@ -25,7 +25,7 @@ For each estimate:
 | 3 | **AWS Lambda** | Architecture **Arm** · Requests 15,120,000 (14.4 M × 1.05 for workers) · Duration 80 ms · Memory 512 MB · Ephemeral storage 512 MB · *Free tier: untick* (if the option is shown) |
 | 4 | **Amazon API Gateway** | HTTP API · Requests 14.4 million/month · Average size ≤ 512 KB |
 | 5 | **Amazon CloudFront** | Data transfer out, **India** 60 GB + **Asia Pacific** 62 GB · HTTPS requests 15,400,000 |
-| 6 | **AWS WAF** | Web ACLs 1 · Rules 3 · Requests 15.4 million |
+| 6 | **AWS WAF** | Web ACLs 1 · Rules 4 · Requests 15.4 million |
 | 7 | **Amazon S3** | S3 Standard 120 GB · Standard-IA 600 GB · Glacier Instant Retrieval 740 GB · **Glacier Deep Archive 5,760 GB** · PUT requests 12,000 · GET requests 36,000 · Lifecycle transitions: 24,000 (to IA/GIR) + 12,000 (to Deep Archive) · Data transfer out to internet: **120 GB** |
 | 8 | **Data Transfer** | Intra-Region (inter-AZ) 86 GB |
 | 9 | **Amazon CloudWatch** | Logs ingested 11 GB · Logs stored 11 GB · Standard alarms 14 · Dashboards 1 |

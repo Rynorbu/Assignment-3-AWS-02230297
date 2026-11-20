@@ -55,7 +55,7 @@ async function signIn(email) {
 const tokens = [];
 for (let i = 1; i <= cfg.accounts; i += 5) {
   const batch = [];
-  for (let j = i; j < i + 5 && j <= cfg.accounts; j++) batch.push(signIn(`loadtest${String(j).padStart(String(cfg.accounts).length, '0')}@${cfg.domain}`));
+  for (let j = i; j < i + 5 && j <= cfg.accounts; j++) batch.push(signIn(`loadtest${String(j).padStart(Math.max(3, String(cfg.accounts).length), '0')}@${cfg.domain}`));
   tokens.push(...(await Promise.all(batch)));
 }
 console.log(`Signed in ${tokens.length} accounts. Target: ${cfg.students} students start within ${cfg.ramp}s, autosave every ${cfg.autosave}s, hold ${cfg.hold}s.`);

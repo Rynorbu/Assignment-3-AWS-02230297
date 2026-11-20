@@ -10,7 +10,7 @@ DB_ID=$(terraform -chdir=infra output -raw db_instance_id)
 API_ID=$(terraform -chdir=infra output -raw api_endpoint | sed -E 's#https://([^.]+)\..*#\1#')
 FN="exam-platform-a3-prod-api"
 mkdir -p evidence/cloudwatch
-cat > /tmp/queries.json <<EOF
+cat > evidence/cloudwatch/.queries.json <<EOF
 [
  {"Id":"dbconn","MetricStat":{"Metric":{"Namespace":"AWS/RDS","MetricName":"DatabaseConnections","Dimensions":[{"Name":"DBInstanceIdentifier","Value":"$DB_ID"}]},"Period":60,"Stat":"Maximum"}},
  {"Id":"dbcpu","MetricStat":{"Metric":{"Namespace":"AWS/RDS","MetricName":"CPUUtilization","Dimensions":[{"Name":"DBInstanceIdentifier","Value":"$DB_ID"}]},"Period":60,"Stat":"Maximum"}},
@@ -26,7 +26,7 @@ cat > /tmp/queries.json <<EOF
 ]
 EOF
 OUT="evidence/cloudwatch/${LABEL}-metrics.json"
-aws cloudwatch get-metric-data --region "$REGION" --metric-data-queries file:///tmp/queries.json \
+aws cloudwatch get-metric-data --region "$REGION" --metric-data-queries file://evidence/cloudwatch/.queries.json \
   --start-time "$START" --end-time "$END" --output json > "$OUT"
 node -e "
 const d=require('./$OUT');

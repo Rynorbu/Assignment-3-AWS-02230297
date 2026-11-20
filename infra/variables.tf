@@ -101,9 +101,15 @@ variable "hosted_zone_id" {
 }
 
 variable "waf_rate_limit_per_ip" {
-  description = "Requests per 5 minutes per IP. Kept high because a whole campus may share one NAT IP."
+  description = "Requests per 5 minutes per IP (flood backstop). Assignment 3: raised from 20,000 after the load test showed 3,000 students behind one IP need ~46,000 per 5 min."
   type        = number
-  default     = 20000
+  default     = 150000
+}
+
+variable "waf_rate_limit_per_student" {
+  description = "Requests per 5 minutes per sign-in token. A student autosaves 10 times per 5 min; 1,000 leaves room for page loads and retries."
+  type        = number
+  default     = 1000
 }
 
 variable "api_throttle_burst" {

@@ -68,6 +68,9 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
+  # Assignment 3 load-test finding: with 20,000 requests / 5 min PER IP, the exam peak from
+  # one network (a campus behind one public IP, or the load-test laptop) was blocked:
+  # 11,762 requests got HTTP 403. Fix: a high per-IP backstop + a per-student limit.
   rule {
     name     = "RateLimitPerIp"
     priority = 3
@@ -83,6 +86,36 @@ resource "aws_wafv2_web_acl" "main" {
     visibility_config {
       cloudwatch_metrics_enabled = true
       metric_name                = "ratelimit"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Per student: requests are counted per sign-in token (Authorization header), so one
+  # abusive client is blocked without blocking the 3,000 honest students who share a campus IP.
+  rule {
+    name     = "RateLimitPerStudent"
+    priority = 4
+    action {
+      block {}
+    }
+    statement {
+      rate_based_statement {
+        limit              = var.waf_rate_limit_per_student
+        aggregate_key_type = "CUSTOM_KEYS"
+        custom_key {
+          header {
+            name = "authorization"
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "ratelimit-student"
       sampled_requests_enabled   = true
     }
   }

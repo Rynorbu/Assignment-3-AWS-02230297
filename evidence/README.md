@@ -89,7 +89,7 @@ Raw results: [`load-test/`](load-test) (JSON + CSV from the script) · [`cloudwa
 | Whole dashboard | ![](load-test/S30-before-dashboard.png) | ![](load-test/S37-after-dashboard.png) |
 | RDS connections / memory | ![](load-test/S31-before-rds-connections.png) | ![](load-test/S38-after-rds-connections.png) |
 | API + Lambda errors | ![](load-test/S32-before-api-errors.png) | ![](load-test/S39-after-api-errors.png) |
-| Logs Insights: error cause | ![](load-test/S33-before-logs-insights.png) | ![](load-test/S40-after-logs-insights.png) |
+| WAF blocked requests (cause of the 403s) | ![](load-test/S33-before-waf-blocked.png) | ![](load-test/S40-after-waf.png) |
 
 | S34 Fix: changed variables | S35 Fix applied (new class / proxy) |
 |---|---|

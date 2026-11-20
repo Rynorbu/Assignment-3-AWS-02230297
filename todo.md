@@ -180,36 +180,45 @@ Follow `docs/calculator-inputs.md` line by line. **Region = Asia Pacific (Singap
   ```
   It runs for about 10 min and prints a line every 10 s. If your laptop or Wi-Fi cannot keep up, use `--students 1500 --autosave 15`: same requests per second, half the sockets. Write down that you did this.
   - 📸 **S29** `evidence/load-test/S29-before-terminal.png`: the last screen, showing the summary JSON (success %, p95, statuses)
-- [ ] **6.2 Prove it with CloudWatch.** Set the dashboard time range to the test window (*Custom → Absolute*).
-  - 📸 **S30** `evidence/load-test/S30-before-dashboard.png`: the whole dashboard
-  - 📸 **S31** `evidence/load-test/S31-before-rds-connections.png`: enlarge the *RDS connections / memory / write latency* widget (click ⋮ → *View in metrics*)
-  - 📸 **S32** `evidence/load-test/S32-before-api-errors.png`: enlarge *API requests / errors* and *API Lambda throttles / errors*
-- [ ] **6.3 Prove the cause from the logs.** CloudWatch → **Logs Insights**, log group `/aws/lambda/exam-platform-a3-prod-api`, same time range:
-  ```
-  fields @timestamp, @message
-  | filter @message like /too many|remaining connection slots|timeout|ECONNREFUSED|Connection terminated/
-  | stats count() as errors by bin(1m)
-  ```
-  - 📸 **S33** `evidence/load-test/S33-before-logs-insights.png`
-  - This is the strongest proof: it shows *why* the requests failed.
-- [ ] **6.4** Export the metrics to JSON: `bash scripts/export-metrics.sh before <startUTC> <endUTC>`, then fill in the **before** columns of `docs/load-test.md`.
-  - **If nothing broke:** re-run with `--ramp 60` (everyone starts within 1 minute) and use that run. Explain honestly that the 5-minute ramp alone did not reach the limit.
+- [x] **6.1 / 6.4 DONE (2026-11-20 11:30–11:41 UTC).** Result: 68.48 % success, **11,750 × HTTP 403** blocked by WAF. Metrics exported to `evidence/cloudwatch/before-metrics.json`. Analysis written in `docs/load-test.md` §2.
+- [ ] **6.2 Re-take the dashboard screenshots for the REAL window.** CloudWatch → Dashboards → `exam-platform-a3-prod` → **Custom → Absolute → UTC timezone** → `2026-11-20 11:29:00` to `2026-11-20 11:43:00`. Delete the old `before-*.png` files first: they show the wrong window.
+  - 📸 **S30** `evidence/load-test/S30-before-dashboard.png`: the whole dashboard (zoom out with Ctrl + −)
+  - 📸 **S31** `evidence/load-test/S31-before-rds-connections.png`: *RDS connections / memory / write latency* → ⋮ → **Enlarge** (DB connections reach 67, free memory drops to 57 MB)
+  - 📸 **S32** `evidence/load-test/S32-before-api-errors.png`: *API requests / errors* → ⋮ → **Enlarge** (Count is high, but **4xx and 5xx are 0**: the blocked requests never reached the API)
+- [ ] **6.3 Prove the cause: WAF.** The WAF of a CloudFront distribution lives in **us-east-1**.
+  1. Switch the Region to **US East (N. Virginia)** → **WAF & Shield** → **Web ACLs** → **Global (CloudFront)** → `exam-platform-a3-prod-waf`.
+  2. **Traffic overview** tab, time range = the same window (Custom, UTC). It shows the **Blocked** requests and the rule **RateLimitPerIp**.
+     - 📸 **S33** `evidence/load-test/S33-before-waf-blocked.png`
+  3. Scroll to **Sampled requests**, filter by rule **RateLimitPerIp**. It shows the blocked requests: your IP, `/api/attempts/.../answers`, Action **BLOCK**. Sampled requests are only kept for 3 hours, so do this soon.
+     - 📸 **S33b** `evidence/load-test/S33b-before-waf-sampled.png`
+  4. Alternative for S33 if the page looks different: CloudWatch → **All metrics** → Region **N. Virginia** → **WAFV2** → *Region, Rule, WebACL* → tick `exam-platform-a3-prod-waf / RateLimitPerIp / BlockedRequests` → statistic **Sum**, period **1 minute**.
 
 ## Phase 7: Apply the fix and re-test (about 45 min)
 
-- [ ] **7.1** Change the GitHub variables, then re-run **Deploy**. The database resize takes about 10–15 min.
-  - **Path A:** `DB_USE_RDS_PROXY=true`, `DB_INSTANCE_CLASS=db.t4g.large`
-  - **Path B:** `API_RESERVED_CONCURRENCY=60`, `DB_INSTANCE_CLASS=db.t4g.small` (or the largest your plan allows)
-  - 📸 **S34** `evidence/load-test/S34-fix-variables.png`: the changed variables
-  - 📸 **S35** `evidence/load-test/S35-fix-applied.png`: RDS *Configuration* showing the new class, and Path A: RDS → **Proxies** showing the proxy *Available*
-- [ ] **7.2** Run the same command with `--label after`.
-  - 📸 **S36** `evidence/load-test/S36-after-terminal.png`
-- [ ] **7.3** Take the same CloudWatch views for the new time window:
+- [ ] **7.1 Apply the fix.**
+  1. **Code (already done in this repo):** WAF per-student rate limit + per-IP backstop raised to 150,000 (`infra/edge.tf`, `infra/variables.tf`).
+  2. **GitHub variables (Path B, Free plan):** set `DB_INSTANCE_CLASS=db.t4g.small` and `API_RESERVED_CONCURRENCY=60`. Keep `DB_USE_RDS_PROXY=false`.
+  3. Push:
+     ```bash
+     git add -A && git commit -m "Load-test fix: WAF per-student rate limit, bigger DB, API concurrency cap" && git push
+     ```
+     The push runs **Deploy**. The DB resize takes about 10–15 min, with a short failover. Wait for the run to go green.
+  - 📸 **S34** `evidence/load-test/S34-fix-variables.png`: the GitHub variables after the change
+  - 📸 **S35** `evidence/load-test/S35-fix-applied.png`: WAF → `exam-platform-a3-prod-waf` → **Rules** tab showing `RateLimitPerIp` **and** `RateLimitPerStudent`
+  - 📸 **S35b** `evidence/load-test/S35b-db-class.png`: RDS → `exam-platform-a3-prod-db` → **Configuration** showing **db.t4g.small**
+- [ ] **7.2 Run the AFTER test.** Wait **10 minutes after the deploy** so the old per-IP counter has expired. Then:
+  ```bash
+  date -u +%Y-%m-%dT%H:%M:%SZ
+  node scripts/peak-load-test.mjs --label after --exam-id 64bd5ba8-04f0-4abc-a634-7891448ae697 --domain example.com --accounts 200 --password 'LoadTest#2026pass'
+  date -u +%Y-%m-%dT%H:%M:%SZ
+  ```
+  - 📸 **S36** `evidence/load-test/S36-after-terminal.png`: the final summary JSON
+- [ ] **7.3** Wait 3 minutes. Take the same views for the AFTER window (start − 1 min to end + 2 min):
   - 📸 **S37** `evidence/load-test/S37-after-dashboard.png`
   - 📸 **S38** `evidence/load-test/S38-after-rds-connections.png`
   - 📸 **S39** `evidence/load-test/S39-after-api-errors.png`
-  - 📸 **S40** `evidence/load-test/S40-after-logs-insights.png` (the same query, about 0 errors)
-- [ ] **7.4** Run `bash scripts/export-metrics.sh after <startUTC> <endUTC>`. Fill in the **after** columns and the conclusion in `docs/load-test.md`. Update the "Peak load" row in `README.md` and `docs/cost-report.md` §6.
+  - 📸 **S40** `evidence/load-test/S40-after-waf.png`: WAF Traffic overview, Blocked about 0
+- [ ] **7.4** Run `bash scripts/export-metrics.sh after <START> <END>`, then send the terminal summary to Claude (or fill in `docs/load-test.md` §4 yourself). Update the "Peak load" row in `README.md` and `docs/cost-report.md` §6.
 
 ## Phase 8: Failure tests, four or more, measured against RPO and RTO (about 1.5–2 h) → rubric "failure tests" (2 marks)
 

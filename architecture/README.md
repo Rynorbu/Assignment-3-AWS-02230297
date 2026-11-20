@@ -19,7 +19,7 @@ flowchart TB
 
   subgraph Edge["Edge (global, many PoPs) 🟢 no SPOF"]
     R53["Route 53<br/>100% SLA DNS"]
-    WAF["AWS WAF<br/>managed rules + rate limit"]
+    WAF["AWS WAF<br/>managed rules<br/>rate limit per student 🆕"]
     CF["CloudFront<br/>HTTPS · static cache"]
   end
 
