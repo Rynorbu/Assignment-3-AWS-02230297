@@ -197,7 +197,7 @@ Follow `docs/calculator-inputs.md` line by line. **Region = Asia Pacific (Singap
 
 - [ ] **7.1 Apply the fix.**
   1. **Code (already done in this repo):** WAF per-student rate limit + per-IP backstop raised to 150,000 (`infra/edge.tf`, `infra/variables.tf`).
-  2. **GitHub variables (Path B, Free plan):** set `DB_INSTANCE_CLASS=db.t4g.small` and `API_RESERVED_CONCURRENCY=60`. Keep `DB_USE_RDS_PROXY=false`.
+  2. **GitHub variables (Path B, Free plan):** keep `DB_INSTANCE_CLASS=db.t4g.micro` (the Free plan refused `db.t4g.small` with `FreeTierRestrictionError`) and set `API_RESERVED_CONCURRENCY=40`. Keep `DB_USE_RDS_PROXY=false`.
   3. Push:
      ```bash
      git add -A && git commit -m "Load-test fix: WAF per-student rate limit, bigger DB, API concurrency cap" && git push
@@ -205,7 +205,8 @@ Follow `docs/calculator-inputs.md` line by line. **Region = Asia Pacific (Singap
      The push runs **Deploy**. The DB resize takes about 10–15 min, with a short failover. Wait for the run to go green.
   - 📸 **S34** `evidence/load-test/S34-fix-variables.png`: the GitHub variables after the change
   - 📸 **S35** `evidence/load-test/S35-fix-applied.png`: WAF → `exam-platform-a3-prod-waf` → **Rules** tab showing `RateLimitPerIp` **and** `RateLimitPerStudent`
-  - 📸 **S35b** `evidence/load-test/S35b-db-class.png`: RDS → `exam-platform-a3-prod-db` → **Configuration** showing **db.t4g.small**
+  - 📸 **S35b** `evidence/load-test/S35b-free-plan-error.png`: the failed Deploy log showing `FreeTierRestrictionError` (evidence for why the DB was not resized)
+  - 📸 **S35c** `evidence/load-test/S35c-api-concurrency.png`: Lambda → `exam-platform-a3-prod-api` → Configuration → **Concurrency** = reserved **40**
 - [ ] **7.2 Run the AFTER test.** Wait **10 minutes after the deploy** so the old per-IP counter has expired. Then:
   ```bash
   date -u +%Y-%m-%dT%H:%M:%SZ

@@ -76,8 +76,8 @@
 | # | Change | Why | How |
 |---|---|---|---|
 | F1 | **WAF: per-student rate limit** (1,000 requests / 5 min per sign-in token). The per-IP rule becomes a flood backstop at **150,000 / 5 min**. | An abusive client is still blocked, but 3,000 honest students sharing one campus IP are not. | `infra/edge.tf`: new rule `RateLimitPerStudent` (`CUSTOM_KEYS` on the `Authorization` header). `infra/variables.tf`: `waf_rate_limit_per_ip = 150000`. Cost: +$1 a month for one more WAF rule. |
-| F2 | **Bigger database** | 2–4× the RAM, so 2–4× the connection limit and room for the buffer cache | `DB_INSTANCE_CLASS=db.t4g.small` (Free plan) or `db.t4g.large` (production exam month) |
-| F3 | **Cap API Lambda concurrency** (Free plan, because RDS Proxy is blocked) | The total number of DB connections can never exceed the cap. Overflow gets a fast throttle that autosave retries 30 s later, instead of crashing the database. | `API_RESERVED_CONCURRENCY=60` |
+| F2 | **Bigger database** (production only) | 2–8× the RAM, so 2–8× the connection limit and room for the buffer cache | `DB_INSTANCE_CLASS=db.t4g.large` in the exam month. **Not possible on this account:** resizing to `db.t4g.small` failed with `FreeTierRestrictionError: This instance size isn't available with free plan accounts` (2026-11-20). The re-test therefore keeps `db.t4g.micro` and relies on F3. |
+| F3 | **Cap API Lambda concurrency** (Free plan, because RDS Proxy and bigger instances are blocked) | Each API Lambda holds at most one DB connection, so the cap bounds the connections. 40 API + up to 20 marking + 10 upload stays under the about 80 usable connections of `db.t4g.micro` (the before run reached 67 with 133 Lambdas). Overflow gets a fast throttle that autosave retries 30 s later, instead of exhausting the database for everyone. | `API_RESERVED_CONCURRENCY=40` |
 | F3-prod | **RDS Proxy** (production, paid plan) | Multiplexes hundreds of Lambda connections onto a few database connections and speeds up failover (FT1) | `DB_USE_RDS_PROXY=true` |
 
 ## 4. AFTER run: results (fill in after the re-test)
