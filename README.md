@@ -114,11 +114,11 @@ Full details, including all 14 changes and the single points of failure: [Archit
 
 **AWS Pricing Calculator estimates** (Singapore, 2026-11-21)
 
-| Estimate | Calculator total | Link |
-|---|---|---|
-| Normal month | $268.85 a month + $668 paid upfront for the Reserved Instance | [Open estimate](https://calculator.aws/#/estimate?id=2f29a9ae440c858ad37fc479ff8bf410188e06a7) |
-| Exam month | $460.54 a month + $668 upfront | [Open estimate](https://calculator.aws/#/estimate?id=86c735058b92028b2a219a6d295a9dfaff85c899) |
-| Assignment 2 design in Singapore | $602.61 a month | [Open estimate](https://calculator.aws/#/estimate?id=9a4d1fa7e65a426b69d80ff1a5877bd410f49105) |
+| Link | Estimate | Calculator total | URL |
+|---|---|---|---|
+| **A** | Normal month (final design) | $268.85 a month + $668 upfront for the Reserved Instance | [https://calculator.aws/#/estimate?id=2f29a9ae440c858ad37fc479ff8bf410188e06a7](https://calculator.aws/#/estimate?id=2f29a9ae440c858ad37fc479ff8bf410188e06a7) |
+| **B** | Exam month (final design) | $460.54 a month + $668 upfront | [https://calculator.aws/#/estimate?id=86c735058b92028b2a219a6d295a9dfaff85c899](https://calculator.aws/#/estimate?id=86c735058b92028b2a219a6d295a9dfaff85c899) |
+| **C** | Assignment 2 design in Singapore (baseline for the savings) | $602.61 a month | [https://calculator.aws/#/estimate?id=9a4d1fa7e65a426b69d80ff1a5877bd410f49105](https://calculator.aws/#/estimate?id=9a4d1fa7e65a426b69d80ff1a5877bd410f49105) |
 
 **Normal month in the AWS Pricing Calculator**
 
@@ -237,6 +237,5 @@ These variables are new for Assignment 3:
 | `API_RESERVED_CONCURRENCY` | `40`, only when there is no RDS Proxy | Protect a small database |
 | `ENABLE_DR_BACKUP_COPY` | `true` (optional) | Copy backups to Mumbai |
 
-**To tear down:** GitHub **Actions**, then **Tear down**, then type `DESTROY`.
 
 ---

@@ -180,11 +180,11 @@ Files older than a year are rarely opened (only for appeals), so a 12-hour wait 
 
 Moving from N. Virginia to Singapore cuts every API round trip by about **220 ms**. Raw data: [`evidence/latency/`](../evidence/latency).
 
-**Measured from Bhutan**
+**Measured from Bhutan with `scripts/measure-latency.sh`.** 20 round trips per Region: Singapore has the lowest median, at 145 ms.
 
 ![Measured from Bhutan](../evidence/latency/latency-terminal.png)
 
-**cloudping.info**
+**cloudping.info from the same connection.** An independent check that agrees with the script.
 
 ![cloudping.info](../evidence/latency/cloudping.png)
 
@@ -211,13 +211,20 @@ O4 was already part of Assignment 2, so it is measured against the simple option
 
 ## 8. AWS Pricing Calculator check
 
-Three estimates were built in the AWS Pricing Calculator to confirm the model. Exports (CSV, PDF, JSON) are in [`evidence/calculator/`](../evidence/calculator).
+Three estimates were built in the AWS Pricing Calculator to confirm the model.
+
+| Link | Estimate | Calculator total | URL |
+|---|---|---|---|
+| **A** | Normal month (final design) | $268.85 a month + $668 upfront for the Reserved Instance | [https://calculator.aws/#/estimate?id=2f29a9ae440c858ad37fc479ff8bf410188e06a7](https://calculator.aws/#/estimate?id=2f29a9ae440c858ad37fc479ff8bf410188e06a7) |
+| **B** | Exam month (final design) | $460.54 a month + $668 upfront | [https://calculator.aws/#/estimate?id=86c735058b92028b2a219a6d295a9dfaff85c899](https://calculator.aws/#/estimate?id=86c735058b92028b2a219a6d295a9dfaff85c899) |
+| **C** | Assignment 2 design in Singapore (baseline for the savings) | $602.61 a month | [https://calculator.aws/#/estimate?id=9a4d1fa7e65a426b69d80ff1a5877bd410f49105](https://calculator.aws/#/estimate?id=9a4d1fa7e65a426b69d80ff1a5877bd410f49105) |
+ Exports (CSV, PDF, JSON) are in [`evidence/calculator/`](../evidence/calculator).
 
 | Estimate | Calculator shows | Same basis as this report ¹ | This report | Difference |
 |---|---|---:|---:|---:|
-| [Normal month](https://calculator.aws/#/estimate?id=2f29a9ae440c858ad37fc479ff8bf410188e06a7) | $268.85/month + $668 upfront | **$324.52** | $326.48 | −$1.96 |
-| [Exam month](https://calculator.aws/#/estimate?id=86c735058b92028b2a219a6d295a9dfaff85c899) | $460.54/month + $668 upfront | **$520.44** ² | $522.74 | −$2.30 |
-| [A2 design in Singapore](https://calculator.aws/#/estimate?id=9a4d1fa7e65a426b69d80ff1a5877bd410f49105) | $602.61/month | **$602.61** | $605.24 | −$2.63 |
+| [A: Normal month](https://calculator.aws/#/estimate?id=2f29a9ae440c858ad37fc479ff8bf410188e06a7) | $268.85/month + $668 upfront | **$324.52** | $326.48 | −$1.96 |
+| [B: Exam month](https://calculator.aws/#/estimate?id=86c735058b92028b2a219a6d295a9dfaff85c899) | $460.54/month + $668 upfront | **$520.44** ² | $522.74 | −$2.30 |
+| [C: A2 design in Singapore](https://calculator.aws/#/estimate?id=9a4d1fa7e65a426b69d80ff1a5877bd410f49105) | $602.61/month | **$602.61** | $605.24 | −$2.63 |
 | **Year** | | **$4,286.08** | **$4,310.28** | **−0.6 %** |
 
 1. The calculator shows the Reserved Instance as $668 upfront. This report spreads it over 12 months: + $55.67 a month.
@@ -225,15 +232,15 @@ Three estimates were built in the AWS Pricing Calculator to confirm the model. E
 
 The two agree within 0.6 %. This report uses the slightly higher model figure, to stay on the safe side.
 
-**Normal month**
+**A: Normal month.** The final design in a normal month: $268.85 a month plus $668 upfront for the 1-year Reserved Instance.
 
 ![Normal month](../evidence/calculator/normal-month-summary.png)
 
-**Exam month**
+**B: Exam month.** The same design with the larger exam-month database and traffic: $460.54 a month plus $668 upfront.
 
 ![Exam month](../evidence/calculator/exam-month-summary.png)
 
-**A2 design in Singapore**
+**C: A2 design in Singapore.** The Assignment 2 design priced in Singapore, with 2 NAT gateways, `db.m6g.large` all year and no Reserved Instance: $602.61 a month. The savings are measured against this.
 
 ![A2 design in Singapore](../evidence/calculator/a2-baseline-summary.png)
 
@@ -248,19 +255,21 @@ The two agree within 0.6 %. This report uses the slightly higher model figure, t
 | O1 | 0 → 2 NAT gateways | **$602.61** (= A2 design) | **$67.46 / month = $809.52 / year** |
 | O4 | Lifecycle → all S3 Standard | S3 line $42.14 → $194.97 | **$152.83 / month** |
 
-**O1 NAT gateways back**
+The screenshots below show the edited line in each step. The bottom-left total is the cost of that one service.
 
-![O1 NAT gateways back](../evidence/calculator/O1-remove-nat.png)
-
-**O2 bigger database**
-
-![O2 bigger database](../evidence/calculator/O2-right-size.png)
-
-**O3 On-Demand**
+**O3: database changed from Reserved to On-Demand.** The database line is now $183.79 a month with nothing upfront, instead of $91.23 a month plus $668 upfront.
 
 ![O3 On-Demand](../evidence/calculator/O3-reserved.png)
 
-**O4 all S3 Standard**
+**O2: database changed to the A2 size, `db.m6g.large`.** The database line rises from $183.79 to $357.53 a month.
+
+![O2 bigger database](../evidence/calculator/O2-right-size.png)
+
+**O1: NAT gateways put back.** The NAT line is $86.44 a month, for 2 gateways with 5 GB of traffic.
+
+![O1 NAT gateways back](../evidence/calculator/O1-remove-nat.png)
+
+**O4: all 7,220 GB of files kept in S3 Standard.** The S3 line rises from $42.14 to $194.97 a month.
 
 ![O4 all S3 Standard](../evidence/calculator/O4-s3-standard.png)
 
