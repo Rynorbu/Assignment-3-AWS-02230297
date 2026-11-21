@@ -41,7 +41,13 @@ Run on 2026-11-20, 11:30–11:41 UTC. Raw output: [`before-….json`](../evidenc
 | **Success rate** | **68.48 %** |
 | Response time p50 / p95 | 511 ms / **10,198 ms** |
 
+**Script result.** Only 68.48 % of requests succeeded, and 11,750 were refused with HTTP 403.
+
 ![Before: script summary](../evidence/load-test/before-terminal.png)
+
+**CloudWatch dashboard during the test.** API requests rise to about 5,600 a minute while Lambda concurrency climbs to 133.
+
+![Before: dashboard](../evidence/load-test/before-dashboard.png)
 
 ---
 
@@ -56,11 +62,11 @@ Run on 2026-11-20, 11:30–11:41 UTC. Raw output: [`before-….json`](../evidenc
 | API Gateway response time p95 | 215 ms | Requests that got through were served quickly |
 | Lambda errors / throttles | 0 / 0 | Lambda was not the problem |
 
-**WAF blocked requests**
+**WAF blocked requests: the proof.** Blocks per minute for the rule `RateLimitPerIp`: 36 + 5,300 + 5,635 + 791 = **11,762**, matching the 403 errors.
 
 ![WAF blocked requests](../evidence/load-test/before-waf-blocked.png)
 
-**API Gateway: no errors**
+**API Gateway: no errors.** The 4xx and 5xx lines stay at 0, so the failing requests never reached the API.
 
 ![API Gateway: no errors](../evidence/load-test/before-api-errors.png)
 
@@ -81,6 +87,8 @@ Run on 2026-11-20, 11:30–11:41 UTC. Raw output: [`before-….json`](../evidenc
 
 Even with a quarter of the traffic blocked, the database was near its limits. Once WAF stopped blocking, about 33 % more traffic would reach it. **So B2 had to be fixed together with B1.**
 
+**Database and Lambda.** Database connections climb to 67 and free memory falls, while Lambda concurrency peaks at 133.
+
 ![Before: database connections, memory and Lambda](../evidence/load-test/before-rds-connections.png)
 
 ---
@@ -93,15 +101,19 @@ Even with a quarter of the traffic blocked, the database was near its limits. On
 | F2 | **Cap the API Lambda at 40 concurrent copies** (`API_RESERVED_CONCURRENCY=40`) | Each copy holds at most one database connection, so the cap keeps the connections under the limit. Extra requests get a quick "try again", and autosave retries 30 s later. |
 | F3 (production) | **RDS Proxy** and **`db.t4g.large`** in exam months | The proper fix for B2: pooled connections and 8× the memory. **The class account could not do this.** The Free plan refused it with `FreeTierRestrictionError`, so F2 was used for the re-test. |
 
-**WAF rules after the fix**
+**GitHub variables changed for the fix.** The fix was deployed through the normal pipeline.
+
+![Variables changed](../evidence/load-test/fix-variables.png)
+
+**WAF rules after the fix.** The new rule `RateLimitPerStudent` limits each sign-in token, and the per-IP rule is raised to 150,000 as a flood backstop.
 
 ![WAF rules after the fix](../evidence/load-test/fix-waf-rules.png)
 
-**API concurrency cap**
+**API concurrency cap.** The API Lambda is limited to 40 copies running at once.
 
 ![API concurrency cap](../evidence/load-test/fix-api-concurrency.png)
 
-**Free plan refused a bigger database**
+**Free plan refused a bigger database.** Resizing the database failed with `FreeTierRestrictionError`, so the fix had to work on `db.t4g.micro`.
 
 ![Free plan refused a bigger database](../evidence/load-test/free-plan-error.png)
 
@@ -123,13 +135,25 @@ Same test, run on 2026-11-20, 12:55–13:06 UTC. Raw output: [`after-….json`](
 | Lambda concurrency (max) | 133 | **34** (cap 40) | |
 | Lambda throttles / errors | 0 / 0 | **0 / 0** | the cap was never hit |
 
-**After: script summary**
+**Script result.** All 47,273 requests returned HTTP 200 (100 %), and the slowest 5 % took 885 ms.
 
 ![After: script summary](../evidence/load-test/after-terminal.png)
 
-**After: dashboard**
+**CloudWatch dashboard during the re-test.** Traffic stays steady at about 6,000 requests a minute, and Lambda concurrency stays under the cap of 40.
 
 ![After: dashboard](../evidence/load-test/after-dashboard.png)
+
+**Database and Lambda.** Database connections peak at 28 (was 67), and Lambda shows no throttles and no errors.
+
+![After: database and Lambda](../evidence/load-test/after-rds-connections.png)
+
+**API requests and errors.** Every request reached the API, with zero 4xx or 5xx errors.
+
+![After: API errors](../evidence/load-test/after-api-errors.png)
+
+**WAF.** Nothing was blocked this time: the per-student limit lets a whole campus through.
+
+![After: WAF](../evidence/load-test/after-waf.png)
 
 **Conclusion:**
 - **B1 is proven and fixed.** Blocked requests went from 11,762 to 0, and the success rate went from 68.5 % to **100 %**.
