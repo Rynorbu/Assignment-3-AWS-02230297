@@ -1,0 +1,321 @@
+{
+	"Name": "Exam platform – A2 design in Singapore",
+	"Total Cost": {
+		"monthly": "602.61",
+		"upfront": "0.00",
+		"12 months": "7231.32"
+	},
+	"Metadata": {
+		"Currency": "USD",
+		"Locale": "en_US",
+		"Created On": "11/21/2026",
+		"Legal Disclaimer": "AWS Pricing Calculator provides only an estimate of your AWS fees and doesn't include any taxes that might apply. Your actual fees depend on a variety of factors, including your actual usage of AWS services.",
+		"Share Url": "https://calculator.aws/#/estimate?id=5d6da8f4a5fabef05e28e829a52a90bd546bbfa1"
+	},
+	"Groups": {
+		"Services": [
+			{
+				"Service Name": "Amazon RDS for PostgreSQL",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "357.53",
+					"upfront": "0.00",
+					"12 months": "4290.36"
+				},
+				"Properties": {
+					"Storage amount": "20 GB",
+					"Storage volume": "General Purpose SSD (gp3)",
+					"Nodes": "1",
+					"Instance Type": "db.m6g.large",
+					"Utilization (On-Demand only)": "100 %Utilized/Month",
+					"Deployment Option": "Multi-AZ",
+					"Pricing Model": "OnDemand",
+					"Additional backup storage": "40 GB"
+				}
+			},
+			{
+				"Service Name": "AWS Secrets Manager",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "0.65",
+					"upfront": "0.00",
+					"12 months": "7.80"
+				},
+				"Properties": {
+					"Number of secrets": "1",
+					"Average duration of each secret": "30 days",
+					"Number of API calls": "50000 per month"
+				}
+			},
+			{
+				"Service Name": "Amazon Simple Queue Service (SQS)",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "0.80",
+					"upfront": "0.00",
+					"12 months": "9.60"
+				},
+				"Properties": {
+					"DT Inbound: Not selected": "0 TB per month",
+					"DT Outbound: Not selected": "0 TB per month",
+					"Standard queue requests": "2 million per month"
+				}
+			},
+			{
+				"Service Name": "Amazon Cognito",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "0.00",
+					"upfront": "0.00",
+					"12 months": "0.00"
+				},
+				"Properties": {
+					"Optimization Rate for Token Requests": "0",
+					"Optimization Rate for App Clients": "0",
+					"Number of monthly active users (MAU)": "8400",
+					"Multi-region replication add-on": "Disabled"
+				}
+			},
+			{
+				"Service Name": "AWS Key Management Service",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "1.30",
+					"upfront": "0.00",
+					"12 months": "15.60"
+				},
+				"Properties": {
+					"Number of customer managed Customer Master Keys (CMK)": "1",
+					"Number of symmetric requests": "100000"
+				}
+			},
+			{
+				"Service Name": "Amazon CloudWatch",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "9.15",
+					"upfront": "0.00",
+					"12 months": "109.79"
+				},
+				"Properties": {
+					"Number of mobile OTEL events and spans or spans per visit": "70",
+					"Mobile sampling rate": "1",
+					"Standard Logs: Data Ingested": "11 GB",
+					"Number of Dashboards": "1",
+					"Number of Standard Resolution Alarm Metrics": "14"
+				}
+			},
+			{
+				"Service Name": "AWS Data Transfer",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "1.72",
+					"upfront": "0.00",
+					"12 months": "20.64"
+				},
+				"Properties": {
+					"DT Inbound: Not selected": "0 TB per month",
+					"DT Outbound: Not selected": "0 TB per month",
+					"DT Intra-Region:": "86 GB per month"
+				}
+			},
+			{
+				"Service Name": "S3 Standard",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "3.07",
+					"upfront": "0.00",
+					"12 months": "36.84"
+				},
+				"Properties": {
+					"S3 Standard storage": "120 GB per month",
+					"PUT, COPY, POST, LIST requests to S3 Standard": "12000",
+					"GET, SELECT, and all other requests from S3 Standard": "36000"
+				}
+			},
+			{
+				"Service Name": "S3 Standard - Infrequent Access",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "8.40",
+					"upfront": "0.00",
+					"12 months": "100.80"
+				},
+				"Properties": {
+					"S3 Standard-IA storage": "600 GB per month",
+					"Lifecycle Transition requests": "12000"
+				}
+			},
+			{
+				"Service Name": "S3 Glacier Deep Archive",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "12.33",
+					"upfront": "0.00",
+					"12 months": "147.96"
+				},
+				"Properties": {
+					"S3 Glacier Deep Archive Average Object Size": "16 MB",
+					"S3 Glacier Deep Archive storage": "5760 GB per month",
+					"Lifecycle Transitions into S3 Glacier Deep Archive": "12000"
+				}
+			},
+			{
+				"Service Name": "S3 Glacier Instant Retrieval",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "3.94",
+					"upfront": "0.00",
+					"12 months": "47.28"
+				},
+				"Properties": {
+					"S3 Glacier Instant Retrieval storage": "740 GB per month",
+					"Lifecycle Transition requests": "12000"
+				}
+			},
+			{
+				"Service Name": "Data Transfer",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "14.40",
+					"upfront": "0.00",
+					"12 months": "172.80"
+				},
+				"Properties": {
+					"DT Inbound: Not selected": "0 TB per month",
+					"DT Outbound: Internet": "120 GB per month"
+				}
+			},
+			{
+				"Service Name": "AWS Web Application Firewall (WAF)",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "18.24",
+					"upfront": "0.00",
+					"12 months": "218.88"
+				},
+				"Properties": {
+					"Number of Rules added per Web ACL": "4 per month",
+					"Number of Web Access Control Lists (Web ACLs) utilized": "1 per month"
+				}
+			},
+			{
+				"Service Name": "Amazon CloudFront",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "32.46",
+					"upfront": "0.00",
+					"12 months": "389.52"
+				},
+				"Properties": {
+					"Data transfer out to internet": "60 GB per month",
+					"Number of requests (HTTPS)": "7800000 per month"
+				}
+			},
+			{
+				"Service Name": "Amazon Route 53",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "0.50",
+					"upfront": "0.00",
+					"12 months": "6.00"
+				},
+				"Properties": {
+					"Hosted Zones": "1"
+				}
+			},
+			{
+				"Service Name": "Amazon Simple Email Service (SES)",
+				"Description": "SES",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "3.60",
+					"upfront": "0.00",
+					"12 months": "43.20"
+				},
+				"Properties": {
+					"Email messages sent": "36000 per month"
+				}
+			},
+			{
+				"Service Name": "Network Address Translation (NAT) Gateway",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "86.44",
+					"upfront": "0.00",
+					"12 months": "1037.28"
+				},
+				"Properties": {
+					"Number of Regional NAT Gateways": "1",
+					"Number of Availability Zones Regional NAT Gateways is active in": "1",
+					"Number of NAT Gateways": "1"
+				}
+			},
+			{
+				"Service Name": "Amazon API Gateway",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "18.00",
+					"upfront": "0.00",
+					"12 months": "216.00"
+				},
+				"Properties": {
+					"HTTP API requests units": "millions",
+					"Average size of each request": "34 KB",
+					"REST API request units": "millions",
+					"Cache memory size (GB)": "None",
+					"WebSocket message units": "thousands",
+					"Average message size": "32 KB",
+					"Requests": "14.4 per month"
+				}
+			},
+			{
+				"Service Name": "AWS Lambda",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "11.08",
+					"upfront": "0.00",
+					"12 months": "132.96"
+				},
+				"Properties": {
+					"Architecture": "x86",
+					"Amount of ephemeral storage allocated": "512 MB",
+					"Invoke Mode": "Buffered",
+					"Number of requests": "15120000 per month"
+				}
+			},
+			{
+				"Service Name": "AWS PrivateLink",
+				"Region": "Asia Pacific (Singapore)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "19.00",
+					"upfront": "0.00",
+					"12 months": "228.00"
+				},
+				"Properties": {
+					"Number of VPC Interface endpoints per AWS region": "1"
+				}
+			}
+		]
+	}
+}

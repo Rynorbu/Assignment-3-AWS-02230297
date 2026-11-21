@@ -1,0 +1,33 @@
+﻿Estimate summary
+Upfront cost,Monthly cost,Total 12 months cost,Currency
+668,460.53999999999996,6194.48,USD
+,,* Includes upfront cost
+
+
+Detailed Estimate
+Group hierarchy,Region,Description,Service,Upfront,Monthly,First 12 months total,Currency,Status,Configuration summary
+Exam month,Asia Pacific (Singapore),,Amazon RDS for PostgreSQL,668,91.226,1762.71,USD,,"Storage amount (20 GB), Storage volume (General Purpose SSD (gp3)), Nodes (1), Instance Type (db.t4g.medium), Utilization (On-Demand only) (100 %Utilized/Month), Deployment Option (Multi-AZ), Pricing Model (Reserved), Lease Offering Term (1yr), Purchase Option (Partial Upfront), Additional backup storage (40 GB)"
+Exam month,Asia Pacific (Singapore),,AWS Lambda,0,17.24,206.88,USD,,"Architecture (Arm), Architecture (x86), Invoke Mode (Buffered), Number of requests (23520000 per month), Amount of ephemeral storage allocated (512 MB)"
+Exam month,Asia Pacific (Singapore),,Amazon API Gateway,0,28,336.00,USD,,"HTTP API requests units (millions), Average size of each request (34 KB), REST API request units (millions), Cache memory size (GB) (None), WebSocket message units (thousands), Average message size (32 KB), Requests (22.4 per month)"
+Exam month,Asia Pacific (Singapore),,Amazon CloudFront,0,50.209999999999994,602.52,USD,,"Data transfer out to internet (90 GB per month), Number of requests (HTTPS) (11800000 per month), Data transfer out to internet (97 GB per month), Number of requests (HTTPS) (12170000 per month)"
+Exam month,Asia Pacific (Singapore),,AWS Web Application Firewall (WAF),0,23.38,280.56,USD,,"Number of Rules added per Web ACL (4 per month), Number of Web Access Control Lists (Web ACLs) utilized (1 per month)"
+Exam month,Asia Pacific (Singapore),,S3 Standard,0,3.02,36.24,USD,,"PUT, COPY, POST, LIST requests to S3 Standard (4000), GET, SELECT, and all other requests from S3 Standard (12000), S3 Standard storage (120 GB per month)"
+Exam month,Asia Pacific (Singapore),,S3 Standard - Infrequent Access,0,8.32,99.84,USD,,"Lifecycle Transition requests (4000), S3 Standard-IA storage (600 GB per month)"
+Exam month,Asia Pacific (Singapore),,S3 Glacier Deep Archive,0,11.85,142.20,USD,,"S3 Glacier Deep Archive Average Object Size (16 MB), Lifecycle Transitions into S3 Glacier Deep Archive (4000), S3 Glacier Deep Archive storage (5760 GB per month)"
+Exam month,Asia Pacific (Singapore),,S3 Glacier Instant Retrieval,0,3.78,45.36,USD,,"Lifecycle Transition requests (4000), S3 Glacier Instant Retrieval storage (740 GB per month)"
+Exam month,Asia Pacific (Singapore),,AWS Data Transfer,0,2.68,32.16,USD,,"DT Inbound: Not selected (0 TB per month), DT Outbound: Not selected (0 TB per month), DT Intra-Region: (134 GB per month), Data transfer cost (2.68)"
+Exam month,Asia Pacific (Singapore),,Amazon CloudWatch,0,13.3765,160.52,USD,,"Number of mobile OTEL events and spans or spans per visit (70), Mobile sampling rate (1), Standard Logs: Data Ingested (17 GB), Number of vCPUs monitored by Database Insights ( per hour), Number of Dashboards (1), Number of Standard Resolution Alarm Metrics (14)"
+Exam month,Asia Pacific (Singapore),,AWS Key Management Service,0,1.45,17.40,USD,,"Number of customer managed Customer Master Keys (CMK) (1), Number of symmetric requests (150000)"
+Exam month,Asia Pacific (Singapore),,Amazon Simple Queue Service (SQS),0,0.96,11.52,USD,,Standard queue requests (2.4 million per month)
+Exam month,Asia Pacific (Singapore),,Amazon Simple Email Service (SES),0,5,60.00,USD,,Email messages sent (50000 per month)
+Exam month,Asia Pacific (Singapore),,Amazon RDS for PostgreSQL,0,153.71,1844.52,USD,,"Storage amount (20 GB), Storage volume (General Purpose SSD (gp3)), Nodes (1), Instance Type (db.t4g.medium), Utilization (On-Demand only) (100 %Utilized/Month), Deployment Option (Multi-AZ), Pricing Model (OnDemand), Additional backup storage (0 GB)"
+Exam month,Asia Pacific (Singapore),,AWS PrivateLink,0,37.98,455.76,USD,,Number of VPC Interface endpoints per AWS region (2)
+Exam month,Asia Pacific (Singapore),,AWS Data Transfer,0,7.2,86.40,USD,,"DT Inbound: Not selected (0 TB per month), DT Outbound: Internet (60 GB per month), DT Intra-Region: (0 TB per month), Data transfer cost (7.2)"
+Exam month,Asia Pacific (Singapore),,Amazon Route 53,0,0.5,6.00,USD,,Hosted Zones (1)
+Exam month,Asia Pacific (Singapore),,AWS Secrets Manager,0,0.65,7.80,USD,,"Number of secrets (1), Average duration of each secret (30 days), Number of API calls (50000 per month)"
+Exam month,Asia Pacific (Singapore),,Amazon Cognito,0,0,0.00,USD,,"Optimization Rate for Token Requests (0), Optimization Rate for App Clients (0), Multi-region replication add-on (Disabled), Multi-region replication add-on (Disabled), Number of monthly active users (MAU) (8400)"
+
+
+
+Acknowledgement
+"* AWS Pricing Calculator provides only an estimate of your AWS fees and doesn't include any taxes that might apply. Your actual fees depend on a variety of factors, including your actual usage of AWS services."

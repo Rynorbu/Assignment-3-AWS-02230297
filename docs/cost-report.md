@@ -1,233 +1,297 @@
-# Cost and service report: exam platform in ap-southeast-1 (Singapore)
+# Cost and Service Report (Singapore, ap-southeast-1)
 
-| | |
-|---|---|
-| **Prices checked** | **2026-11-19**. Unit prices come from the AWS Price List API for `ap-southeast-1` (publication dates 2026-10-19 to 2026-11-18). Items marked [calc] were taken from the AWS Pricing Calculator. |
-| **Calculator estimates** | Normal month: ☐ *paste share link* · Exam month: ☐ *paste share link* · A2 baseline: ☐ *paste share link* (exports are in [`evidence/calculator/`](../evidence/calculator)) |
-| **Reproducible model** | [`scripts/cost-model.mjs`](../scripts/cost-model.mjs). Run `node scripts/cost-model.mjs` to regenerate every number in this report. |
-| **Budget** | USD 1,000 per month, averaged over 12 months (10 normal months + 2 exam months) |
+**Contents**
+1. [Summary](#1-summary)
+2. [Assumptions](#2-assumptions)
+3. [Monthly cost per service](#3-monthly-cost-per-service)
+4. [Hidden costs and the three most expensive components](#4-hidden-costs-and-the-three-most-expensive-components)
+5. [Service choices compared with alternatives](#5-service-choices-compared-with-alternatives)
+6. [Singapore vs Mumbai, and latency from Bhutan](#6-singapore-vs-mumbai-and-latency-from-bhutan)
+7. [Optimisations and their savings](#7-optimisations-and-their-savings)
+8. [AWS Pricing Calculator check](#8-aws-pricing-calculator-check)
+9. [Feasibility verdict](#9-feasibility-verdict)
+10. [What the testing itself cost](#10-what-the-testing-itself-cost)
 
-## 1. Assumptions (usage that drives the bill)
+**Sources:**
+- Prices from the AWS Price List API for `ap-southeast-1`, checked on **2026-11-19**, then confirmed in the AWS Pricing Calculator on 2026-11-21 (§8).
+- Every number in this report can be regenerated with `node scripts/cost-model.mjs`.
+
+---
+
+## 1. Summary
+
+| | Normal month | Exam month | Year (10 normal + 2 exam) |
+|---|---:|---:|---:|
+| **Final design** | **$326.48** | **$522.74** | **$4,310.28** |
+| Assignment 2 design moved to Singapore | $605.24 | $653.66 | $7,359.68 |
+
+- **Average $359 a month**, which is **36 % of the $1,000 budget**. Even the most expensive month (exam, $523) is far under the budget.
+- **$0.54 per student per year.**
+- The optimisations save **$3,049 a year (−42 %)** compared with the Assignment 2 design.
+- **Cash flow:** the 1-year Reserved Instance needs **$668 upfront**. The monthly figures above already spread it over 12 months.
+
+---
+
+## 2. Assumptions
 
 | Driver | Normal month | Exam month | Basis |
 |---|---|---|---|
-| Users | 8,000 students + 400 staff = 8,400 monthly active | same | brief |
-| Concurrent users | 300–500 (400 average over 10 active hours a day) | peak of 3,000 starting within 5 min | brief |
-| API requests | 14.4 M | 22.4 M | 400 users × 2 req/min × 10 h × 30 d; exam months add 40,000 attempts × 200 requests (180 autosaves in 90 min + 20 others) |
-| Lambda | 80 ms average, 512 MB, arm64 | same | A2 configuration |
-| Assignment uploads | 12,000 files (120 GB) | 4,000 files (40 GB) | 8,000 students × 1.5 a month × 10 MB average |
-| S3 stock after 5 years | 7.2 TB (1.44 TB/year) | — | Year-5 steady state is costed, to be safe |
-| CloudFront out | 122 GB | 187 GB | SPA assets plus 5 KB per API response |
-| Tutor downloads (S3 → internet) | 120 GB | 60 GB | each file is opened about once |
-| Logs ingested | 11 GB | 17 GB | API access logs + Lambda + PostgreSQL |
+| Users | 8,400 monthly active (8,000 students + 400 staff) | same | brief |
+| Concurrent users | 300 - 500 | peak of 3,000 starting within 5 min | brief |
+| API requests | 14.4 million | 22.4 million | 400 users × 2 requests/min × 10 h × 30 days; exam months add 40,000 attempts × 200 requests |
+| Lambda | 80 ms average, 512 MB, arm64 | same | Assignment 2 setting |
+| Assignment uploads | 12,000 files (120 GB) | 4,000 files (40 GB) | 8,000 students × 1.5 files × 10 MB |
+| Files stored after 5 years | 7.2 TB | — | Year-5 level is costed, to be safe |
+| CloudFront data out | 122 GB | 187 GB | web app + 5 KB per API response |
+| Tutor downloads (S3 - internet) | 120 GB | 60 GB | each file opened about once |
+| Logs | 11 GB | 17 GB | API, Lambda and PostgreSQL logs |
 | Emails | 36,000 | 50,000 | results + upload receipts |
-| Database | `db.t4g.medium` Multi-AZ, 20 GB gp3 | `db.t4g.large` Multi-AZ | load test (`docs/load-test.md`) |
+| Database | `db.t4g.medium` Multi-AZ, 20 GB | `db.t4g.large` Multi-AZ | from the load test |
 
-## 2. Monthly cost per service (final design, 1-year RDS Reserved Instance applied)
+---
 
-| Service | Normal month | Exam month | Annual (10 + 2) |
+## 3. Monthly cost per service
+
+| Service | Normal month | Exam month | Year |
 |---|---:|---:|---:|
-| RDS PostgreSQL Multi-AZ instance (RI t4g.medium; exam month = RI + on-demand half of t4g.large) | $111.29 | $259.48 | $1,631.86 |
-| RDS storage gp3 Multi-AZ (20 GB) | $5.52 | $5.52 | $66.24 |
-| RDS Proxy (2 vCPU × $0.018/h) | $26.28 | $26.28 | $315.36 |
-| RDS CPU credits (T4g unlimited, exam sittings) | $0.00 | $9.75 | $19.50 |
-| **Backups** (AWS Backup snapshots, about 40 GB warm) 🔍 | $3.80 | $3.80 | $45.60 |
-| **NAT gateway** hours + **processing** 🔍 | $0.00 | $0.00 | $0.00 (was $1,037 in A2) |
-| VPC interface endpoints: SQS + Secrets Manager (2 endpoints × 2 AZ × $0.013/h) | $37.98 | $37.98 | $455.76 |
-| Lambda arm64 (requests + GB-s + 1-min scheduler) | $10.76 | $16.71 | $141.03 |
-| API Gateway HTTP API ($1.25 per million) | $18.00 | $28.00 | $236.00 |
-| CloudFront (data out + HTTPS requests) | $33.13 | $51.20 | $433.70 |
-| WAF (web ACL + 4 rules + $0.60 per million requests) | $18.24 | $23.38 | $229.21 |
-| S3 uploads storage (lifecycle, year-5 steady state) | $26.50 | $26.50 | $318.00 |
+| RDS PostgreSQL Multi-AZ instance (Reserved `t4g.medium`; exam month adds On-Demand to make `t4g.large`) | $111.29 | $259.48 | $1,631.86 |
+| RDS storage, 20 GB gp3 Multi-AZ | $5.52 | $5.52 | $66.24 |
+| RDS Proxy (2 vCPU) | $26.28 | $26.28 | $315.36 |
+| RDS CPU credits | $0.00 | $9.75 | $19.50 |
+| Backups (≈ 40 GB of snapshots) | $3.80 | $3.80 | $45.60 |
+| NAT gateways | **$0.00** | **$0.00** | $0.00 (was $1,037 in A2) |
+| VPC interface endpoints: SQS + Secrets Manager, 2 AZs | $37.98 | $37.98 | $455.76 |
+| Lambda (arm64) | $10.76 | $16.71 | $141.03 |
+| API Gateway HTTP API | $18.00 | $28.00 | $236.00 |
+| CloudFront | $33.13 | $51.20 | $433.70 |
+| WAF (1 web ACL, 4 rules) | $18.24 | $23.38 | $229.21 |
+| S3 storage (lifecycle, year-5 level) | $26.50 | $26.50 | $318.00 |
 | S3 requests + lifecycle transitions | $1.03 | $0.34 | $11.03 |
-| **Data transfer out** (S3 → tutors, $0.12/GB) 🔍 | $14.40 | $7.20 | $158.40 |
-| **Inter-AZ data transfer** (Lambda ↔ RDS, $0.02/GB) 🔍 | $1.72 | $2.68 | $22.56 |
-| **CloudWatch Logs** ($0.70/GB ingest + storage) 🔍 | $8.03 | $12.41 | $105.12 |
-| CloudWatch alarms (14, of which 10 are free) + 1 dashboard | $3.40 | $3.40 | $40.80 |
-| **KMS** key + **requests** (S3 bucket key keeps them low) 🔍 | $1.24 | $1.39 | $15.18 |
-| Secrets Manager (1 secret) | $0.65 | $0.65 | $7.80 |
-| SQS (incl. Lambda long-polling, first 1 M free) | $0.40 | $0.56 | $5.12 |
-| SES email ($0.10 per 1,000) | $3.60 | $5.00 | $46.00 |
-| Cognito (8,400 MAU, below the 10,000 free tier) | $0.00 | $0.00 | $0.00 |
+| Data transfer out to the internet | $14.40 | $7.20 | $158.40 |
+| Data transfer between AZs | $1.72 | $2.68 | $22.56 |
+| CloudWatch Logs | $8.03 | $12.41 | $105.12 |
+| CloudWatch alarms (14) + dashboard | $3.40 | $3.40 | $40.80 |
+| KMS key + requests | $1.24 | $1.39 | $15.18 |
+| Secrets Manager | $0.65 | $0.65 | $7.80 |
+| SQS | $0.40 | $0.56 | $5.12 |
+| SES email | $3.60 | $5.00 | $46.00 |
+| Cognito (8,400 users, under the 10,000 free tier) | $0.00 | $0.00 | $0.00 |
 | Route 53 hosted zone | $0.50 | $0.50 | $6.00 |
-| EventBridge schedule, CloudTrail management trail | $0.00 | $0.00 | $0.00 |
+| EventBridge, CloudTrail (free tier) | $0.00 | $0.00 | $0.00 |
 | **Total** | **$326.48** | **$522.74** | **$4,310.28** |
 
-| Headline | Value |
-|---|---|
-| Annual total | **$4,310.28** (on-demand without the RI: $4,753.08) |
-| Average per month | **$359.19**, which is **36 % of the $1,000 budget** |
-| Most expensive month (exam) | $522.74, still under the monthly budget |
-| **Cost per student per year** | **$0.54** ($4,310.28 / 8,000). Per user including staff: $0.51 |
-| Cost per exam attempt (exam months only) | about $0.013 ($1,045.48 / 80,000 attempts in the two exam months, an upper bound because it includes normal traffic) |
-| Cash-flow note | The partial-upfront RI needs **$668 upfront** in month 1. This is already spread across the monthly figures above. |
+Without the Reserved Instance (all On-Demand) the year would be $4,753.08.
 
-### 2.1 Hidden costs (🔍), shown separately
+---
 
-| Hidden cost | Normal | Exam | Note |
+## 4. Hidden costs and the three most expensive components
+
+### 4.1 Hidden costs
+
+These are easy to miss because they do not appear as a "server". Together they are about 10 % of the bill.
+
+| Hidden cost | Normal | Exam | Why it matters |
 |---|---:|---:|---|
-| Data transfer out (internet) | $14.40 | $7.20 | S3 presigned downloads. CloudFront transfer is in its own line. The first 100 GB/month of AWS DTO is free, so the real bill is lower. |
-| NAT gateway processing ($0.059/GB) + hours | $0.00 | $0.00 | **Removed.** The A2 design would cost $86.14 in hours alone. The replacement endpoints are in their own line. |
-| CloudWatch Logs | $8.03 | $12.41 | Ingestion is $0.70/GB, so log volume matters more than retention. |
-| KMS requests | $1.24 | $1.39 | Without the S3 bucket key, every upload and download would be a KMS call. |
-| Backups | $3.80 | $3.80 | RDS snapshots **cannot use cold storage**, so 60 monthly snapshots stay warm at $0.095/GB. |
-| Inter-AZ traffic | $1.72 | $2.68 | Half of the Lambda environments sit in the AZ without the primary. |
-| T4g CPU credits | $0.00 | $9.75 | Unlimited mode: if the database bursts above baseline for hours, you pay per vCPU-hour. |
-| **Hidden subtotal** | **$29.19** | **$37.23** | about 10 % of the bill |
+| Data transfer out | $14.40 | $7.20 | Tutors downloading files. The first 100 GB a month is free, so the real bill is lower. |
+| CloudWatch Logs | $8.03 | $12.41 | Ingesting costs $0.70/GB, so log *volume* matters more than how long logs are kept. |
+| T4g CPU credits | $0.00 | $9.75 | If the database runs above its baseline for hours, each extra vCPU-hour is charged. |
+| Backups | $3.80 | $3.80 | RDS snapshots **cannot use cold storage**, so 5 years of monthly snapshots stay at the normal price. |
+| Data transfer between AZs | $1.72 | $2.68 | Half of the Lambdas sit in the AZ without the database primary. |
+| KMS requests | $1.24 | $1.39 | Kept low by the S3 bucket key. Without it, every file upload and download would be a KMS call. |
+| NAT gateway | $0.00 | $0.00 | **Removed.** In the A2 design it would cost $86 a month in hours alone. |
+| **Total hidden** | **$29.19** | **$37.23** | |
 
-The calculator does **not** apply the CloudFront always-free tier (1 TB and 10 M requests per month). That tier would cut the CloudFront line to about $6 a month, so the totals above are a safe upper bound.
+### 4.2 The three most expensive components
 
-## 3. The three most expensive components
-
-| Rank | Component | Annual | Share | Why it is expensive |
+| Rank | Component | Year | Share | Why it is expensive |
 |---|---|---:|---:|---|
-| 1 | **RDS PostgreSQL Multi-AZ instance** | $1,631.86 | 38 % | It is the only always-on server. Multi-AZ **doubles** the price for the synchronous standby that delivers "survive one AZ" and RPO 0. It is also sized up for exam months. Adding the proxy, storage and backups, the database tier is **48 %** of the bill. |
-| 2 | **VPC interface endpoints** (SQS + Secrets Manager) | $455.76 | 11 % | This is the price of removing the NAT gateways. Interface endpoints are billed **per endpoint, per AZ, per hour** ($0.013), whether or not traffic flows: 2 endpoints × 2 AZ × 730 h. They are still $67/month cheaper than the A2 NAT setup, and they remove a SPOF. The S3 gateway endpoint is free. |
-| 3 | **CloudFront** | $433.70 | 10 % | Every API call (about 15–23 M a month) passes through CloudFront at $0.012 per 10,000 HTTPS requests, plus about 120–190 GB a month of transfer at Asian edge prices. This cost scales with use, not with time. |
+| 1 | **RDS database instance** | $1,631.86 | 38 % | It is the only server that runs all the time. Multi-AZ **doubles** its price for the standby that lets the platform survive an AZ loss with no data loss. With the proxy, storage and backups, the database is **48 %** of the bill. |
+| 2 | **VPC interface endpoints** | $455.76 | 11 % | The price of removing the NAT gateways. Each endpoint is billed per AZ, per hour, even with no traffic. They are still $67 a month cheaper than the NAT gateways. |
+| 3 | **CloudFront** | $433.70 | 10 % | Every API call (15–23 million a month) passes through it, at $0.012 per 10,000 requests. It grows with use. |
 
-Next come S3 uploads storage ($318, year-5 steady state; lifecycle rules already move 80 % of it to Deep Archive) and RDS Proxy ($315).
+---
 
-## 4. Service choices compared with alternatives
+## 5. Service choices compared with alternatives
 
-Prices are in Singapore at the usage levels in section 1. N/E means normal month / exam month.
+All prices are for Singapore at the usage in §2.
 
-### 4.1 Backend compute: Lambda (chosen) vs ECS Fargate vs EC2 Auto Scaling
+### 5.1 Backend compute: Lambda vs ECS Fargate vs EC2
 
-| | **Lambda arm64 + HTTP API** ✅ | ECS Fargate ARM + ALB | EC2 Auto Scaling (t4g.small) + ALB |
+| | **Lambda + HTTP API** | ECS Fargate + load balancer | EC2 Auto Scaling + load balancer |
 |---|---|---|---|
-| Cost N / E | **$28.76 / $44.71** | about $63 / $82 (2 × 0.5 vCPU/1 GB tasks always on, 6 during exams; ALB $18.40 + LCU) | about $60 / $70 (2 × t4g.small [calc] + EBS + ALB) |
-| Performance | Scales to 1,000 environments in about 10 s. Cold starts of 0.5–1.5 s in a VPC. | No cold start. Scale-out takes 1–2 min, so tasks must be pre-scaled before an exam. | Scale-out takes 2–4 min. Must be scheduled before exams. |
-| Resilience | Multi-AZ by default, no servers to fail | Tasks spread over 2 AZs, ALB health checks | Same as Fargate, plus OS patching risk |
-| Effort | Lowest (A2 code already runs) | Containerise, write a task definition, scaling policies | AMIs, patching, scaling policies |
-| Verdict | **Keep.** Cheapest below about 40–60 M requests a month, and absorbs the peak without planning. | Better if traffic becomes steady and high | Most work, no benefit here |
+| Cost (normal / exam month) | **$29 / $45** | ≈ $63 / $82 | ≈ $60 / $70 |
+| Performance | Scales in seconds. Cold starts of 0.5 - 1.5 s. | No cold starts, but scaling takes 1–2 min, so it must be scaled up before an exam | Scaling takes 2 - 4 min |
+| Resilience | Runs in several AZs, no servers to fail | Tasks in 2 AZs with health checks | Same, plus operating-system patching |
+| Effort | Lowest (the A2 code already runs) | Containers, task definitions, scaling rules | Images, patching, scaling rules |
+| **Decision** | **Keep.** Cheapest at this traffic and handles the peak without planning. | Better only for steady, high traffic | Most work, no benefit |
 
-### 4.2 Answers database: RDS Multi-AZ (chosen) vs Aurora Serverless v2 vs DynamoDB
+### 5.2 Database: RDS Multi-AZ vs Aurora Serverless v2 vs DynamoDB
 
-| | **RDS PostgreSQL Multi-AZ + Proxy** ✅ | Aurora PostgreSQL Serverless v2 | DynamoDB on-demand |
+| | **RDS PostgreSQL Multi-AZ + Proxy** | Aurora Serverless v2 | DynamoDB |
 |---|---|---|---|
-| Cost N / E | **$143 / $301** (RI, storage, proxy, credits) | about $252 / $500 (writer about 1–2 ACU + reader 0.5–1 ACU at $0.20 per ACU-hour, plus $0.22 per million I/Os and storage) | about $22 / $33 (autosave about 3 WRU at $0.7125 per million, reads $0.1425 per million, storage $0.285/GB) |
-| Performance | Fixed capacity, so it must be resized for exam months (done) | Scales ACUs in seconds, good for spikes | Single-digit ms at any scale, no connection limit |
-| Resilience | Standby in a 2nd AZ, failover in about 60–120 s, PITR 5 min | 6 copies across 3 AZs, failover under 30 s with a reader | 3 AZs built in, PITR to the second |
-| Effort | None (A2 schema) | Low (same PostgreSQL) | **High.** The relational schema (exams → attempts → results, tutor reports with joins and averages) must be redesigned. |
-| Verdict | **Keep.** Cheapest relational option at a predictable baseline. | Costs more because Singapore ACU-hours run 24/7 | Cheapest and most resilient, but the rewrite cost is too high for this term. **Recommended next step: move only the `attempts.answers` autosave hot path to DynamoDB.** |
+| Cost (normal / exam month) | **$143 / $301** | ≈ $252 / $500 | ≈ $22 / $33 |
+| Performance | Fixed size, so it is resized for exam months | Scales in seconds | Fast at any scale, no connection limit |
+| Resilience | Standby in a 2nd AZ, failover ≈ 1 min | 6 copies across 3 AZs, failover < 30 s | 3 AZs built in |
+| Effort | None (A2 schema) | Low (same PostgreSQL) | **High:** the relational schema must be redesigned |
+| **Decision** | **Keep.** Cheapest relational option. | Costs more, because it runs 24/7 | Cheapest, but the rewrite is too big for now. **Next step:** move only autosave to DynamoDB. |
 
-### 4.3 Private traffic: NAT gateway vs VPC endpoints (chosen)
+### 5.3 Private network access: NAT gateways vs VPC endpoints
 
-| | 2 NAT gateways + SQS endpoint (A2) | 1 NAT gateway + SQS endpoint | **VPC endpoints only** ✅ |
+| | 2 NAT gateways (A2) | 1 NAT gateway | **VPC endpoints only** |
 |---|---|---|---|
-| Cost / month | $86.14 + $18.99 = **$105.13** + $0.059/GB | $43.07 + $18.99 = $62.06 + $0.059/GB | **$37.98** (SQS + Secrets Manager interface endpoints × 2 AZ) + $0.01/GB. S3 gateway endpoint is free. |
-| Performance | Extra hop, 5–100 Gbps | Same | Private AWS network, lowest latency |
-| Resilience | One per AZ, AZ-independent | **AZ SPOF**: if its AZ fails, the other AZ loses outbound access | One ENI per AZ |
-| Effort | — | — | Already built in A2 (`nat_gateway_count = 0`). Works because the VPC Lambdas only call S3, SQS and the RDS Proxy, and the proxy only needs Secrets Manager. |
-| Annual saving vs A2 | — | $517 | **$809** |
+| Cost per month | **$105.13** + $0.059/GB | $62.06 + $0.059/GB | **$37.98** + $0.01/GB (S3 endpoint is free) |
+| Resilience | One per AZ | **Single point of failure:** if its AZ fails, the other AZ loses access | One network interface per AZ |
+| Why it works | — | — | The Lambdas only call S3, SQS and the database, and the proxy only needs Secrets Manager. Nothing needs the internet. |
+| Saving per year vs A2 | — | $517 | **$809** |
 
-### 4.4 Purchase model for the 24/7 database: On-Demand vs Reserved Instance (chosen) vs Savings Plans
+### 5.4 Paying for the database: On-Demand vs Reserved Instance vs Savings Plan
 
-| `db.t4g.medium` Multi-AZ | Monthly | vs On-Demand | Commitment | Notes |
-|---|---:|---:|---|---|
-| On-Demand | $148.19 | — | none | Flexible, most expensive |
-| 1-yr RI, no upfront | $117.17 | −21 % | 12 months | No cash upfront |
-| **1-yr RI, partial upfront** ✅ | **$111.29** | **−25 %** | $668 upfront + $0.0762/h | Size-flexible within t4g, so it also covers half of the exam-month `t4g.large` |
-| 1-yr RI, all upfront | $108.25 | −27 % | $1,299 upfront | Small extra gain for twice the cash |
-| Compute Savings Plan | n/a for RDS | — | — | Applies to Lambda/Fargate. Lambda is only $141 a year, so 1-yr commitment saves about $20. Not worth it. |
-| Database Savings Plan [calc] | check in calculator | about −20 to −35 % | $/hour, 1 year | Newer option: covers RDS/Aurora/DynamoDB across instance families. Re-check it if the database moves to Aurora or DynamoDB. |
+| `db.t4g.medium` Multi-AZ | Per month | Saving | Commitment |
+|---|---:|---:|---|
+| On-Demand | $148.19 | — | none |
+| 1-year Reserved, no upfront | $117.17 | 21 % | 12 months |
+| **1-year Reserved, partial upfront** | **$111.29** | **25 %** | $668 upfront. It also covers half of the exam-month `t4g.large`. |
+| 1-year Reserved, all upfront | $108.25 | 27 % | $1,299 upfront for little extra saving |
+| Compute Savings Plan | — | — | Does not apply to RDS. Lambda is only $141 a year, so it would save about $20. |
 
-A 3-year RI was rejected: the platform is new, and the database engine choice (section 4.2) may change.
+A 3-year term was rejected: the platform is new, and the database choice (§5.2) may change.
 
-### 4.5 Five-year file retention: S3 Standard vs Intelligent-Tiering vs lifecycle to Glacier (chosen)
+### 5.5 Keeping files for 5 years: S3 Standard vs Intelligent-Tiering vs lifecycle 
 
-Steady state is 7.2 TB, about 720,000 objects.
-
-| | S3 Standard only | Intelligent-Tiering (Archive Instant Access) | **Lifecycle: Std → IA (30 d) → Glacier IR (180 d) → Deep Archive (365 d) → delete (5 y)** ✅ |
+| | S3 Standard only | Intelligent-Tiering | **Lifecycle to Glacier / Deep Archive** |
 |---|---:|---:|---:|
-| Storage / month | $180.00 | about $42.30 (incl. $1.80 monitoring fee) | **$26.50** |
-| Retrieval of an old file | instant, free | instant, free | < 1 year: instant. **> 1 year: about 12 h**, $0.02/GB |
-| Resilience | 11 nines, 3+ AZs | same | same |
-| Effort | none | none | Rules already in Terraform. Appeals on files more than a year old need a restore request. |
-| Annual saving vs Standard | — | $1,652 | **$1,838** |
+| Storage per month (7.2 TB) | $180.00 | ≈ $42.30 | **$26.50** |
+| Opening an old file | instant | instant | instant for the first year; **≈ 12 h** after 1 year |
+| Saving per year vs Standard | — | $1,652 | **$1,838** |
 
-## 5. Singapore vs Mumbai (ap-south-1), and latency from Bhutan
+Files older than a year are rarely opened (only for appeals), so a 12-hour wait is acceptable.
 
-| | **Singapore ap-southeast-1** ✅ | Mumbai ap-south-1 |
+---
+
+## 6. Singapore vs Mumbai, and latency from Bhutan
+
+| | **Singapore** | Mumbai |
 |---|---|---|
-| Annual cost (on-demand, same design) | $4,753 | **$4,291 (−10 %)** |
-| Main price differences | RDS t4g.medium Multi-AZ $0.203/h · API Gateway $1.25/M · Proxy $0.018 | $0.167/h (−18 %) · $1.05/M (−16 %) · $0.017 |
-| AZs / services needed | 3 AZs, all services available | 3 AZs, all services available |
-| **Latency from Bhutan** (TCP round trip, 20 samples, 2026-11-20 14:18 BTT, [`latency-20261120-1418.csv`](../evidence/latency/latency-20261120-1418.csv)) | **median 145 ms** (min 117, p90 176) ✅ fastest | median 165 ms (min 135, p90 195) |
-| Routing from Bhutan | Traffic leaves through India, then over subsea cable to Singapore. The measurement shows this path is **20 ms faster** than the land route to Mumbai on this connection. | Mumbai is geographically closer, but measured slower. Hyderabad (ap-south-2) median 155 ms. N. Virginia (A2 Region) median **364 ms**. |
-| Effect on this app | The static app is served from CloudFront edges, so only `/api/*` calls make the trip. Autosave runs in the background every 30 s, so a 20 ms difference is not visible to students. Moving from N. Virginia (A2) to Singapore cuts each API round trip by about 220 ms. | — |
-| Verdict | **Stay in Singapore**: it is the required Region, it measured the **lowest latency** from Bhutan, and it is a mature Region. Mumbai would save about $460 a year (10 %), but would be slower for these users. | **Use Mumbai as the DR Region** (`dr_region = ap-south-1`): cheaper, only 20 ms slower, and a different geography from Singapore. |
+| Cost per year (same design, On-Demand) | $4,753 | **$4,291** (10 % cheaper) |
+| Price examples | Database $0.203/h · API $1.25 per million | $0.167/h · $1.05 per million |
+| **Latency from Bhutan** (median of 20 samples) | **145 ms** (fastest) | 165 ms |
+| Other Regions measured | Hyderabad 155 ms · N. Virginia (A2 Region) **364 ms** | |
+| **Decision** | **Stay in Singapore.** Required by the brief, and the fastest from Bhutan. Traffic leaves Bhutan through India and reaches Singapore by subsea cable faster than the land route to Mumbai. | **Use as the backup (DR) Region:** cheaper, close, and in a different geography. |
 
-**How to measure latency (run from Bhutan):**
+Moving from N. Virginia to Singapore cuts every API round trip by about **220 ms**. Raw data: [`evidence/latency/`](../evidence/latency).
 
-```bash
-bash scripts/measure-latency.sh   # 20 TCP+TLS handshakes to each Region, prints the median
-```
+**Measured from Bhutan**
 
-Also capture a screenshot of <https://www.cloudping.info> from the same connection, and save both in `evidence/latency/`.
+![Measured from Bhutan](../evidence/latency/latency-terminal.png)
 
-## 6. Feasibility verdict
+**cloudping.info**
+
+![cloudping.info](../evidence/latency/cloudping.png)
+
+---
+
+## 7. Optimisations and their savings
+
+| # | Optimisation | Before | After | **Saving per year** |
+|---|---|---|---|---:|
+| O1 | **Remove both NAT gateways**, use VPC endpoints | 2 NAT gateways ($86/month) | + Secrets Manager endpoint ($19/month) | **$809** |
+| O2 | **Right-size the database by season** | `db.m6g.large` all year ($322/month) | `t4g.medium` normally, `t4g.large` in exam months | **$1,789** |
+| O3 | **1-year Reserved Instance** for the database | On-Demand | Reserved, partial upfront | **$443** |
+| O4 | **S3 lifecycle** to Glacier / Deep Archive | All S3 Standard ($180/month) | $26.50/month | **$1,838** |
+| O5 | **Logs kept 30 days** instead of 90 | 90 days | 30 days | $9 (small; mainly keeps less student data) |
+| | **A2 design → final design** (O1 + O2 + O3 + O5) | $7,360 / year | $4,310 / year | **$3,049 (−42 %)** |
+
+O4 was already part of Assignment 2, so it is measured against the simple option of keeping everything in S3 Standard.
+
+**Further options, not applied:**
+- The CloudFront free tier or flat-rate plan: about −$350 a year.
+- Autosave in DynamoDB: about −$1,500 a year, but it needs a code rewrite.
+
+---
+
+## 8. AWS Pricing Calculator check
+
+Three estimates were built in the AWS Pricing Calculator to confirm the model. Exports (CSV, PDF, JSON) are in [`evidence/calculator/`](../evidence/calculator).
+
+| Estimate | Calculator shows | Same basis as this report ¹ | This report | Difference |
+|---|---|---:|---:|---:|
+| [Normal month](https://calculator.aws/#/estimate?id=2f29a9ae440c858ad37fc479ff8bf410188e06a7) | $268.85/month + $668 upfront | **$324.52** | $326.48 | −$1.96 |
+| [Exam month](https://calculator.aws/#/estimate?id=86c735058b92028b2a219a6d295a9dfaff85c899) | $460.54/month + $668 upfront | **$520.44** ² | $522.74 | −$2.30 |
+| [A2 design in Singapore](https://calculator.aws/#/estimate?id=9a4d1fa7e65a426b69d80ff1a5877bd410f49105) | $602.61/month | **$602.61** | $605.24 | −$2.63 |
+| **Year** | | **$4,286.08** | **$4,310.28** | **−0.6 %** |
+
+1. The calculator shows the Reserved Instance as $668 upfront. This report spreads it over 12 months: + $55.67 a month.
+2. Exam month: the calculator forced 20 GB of storage on the extra database line, which counts the disk twice (−$5.52). It also has no field for CPU credits, so they were added by hand (+$9.75).
+
+The two agree within 0.6 %. This report uses the slightly higher model figure, to stay on the safe side.
+
+**Normal month**
+
+![Normal month](../evidence/calculator/normal-month-summary.png)
+
+**Exam month**
+
+![Exam month](../evidence/calculator/exam-month-summary.png)
+
+**A2 design in Singapore**
+
+![A2 design in Singapore](../evidence/calculator/a2-baseline-summary.png)
+
+**Each optimisation, checked in the calculator.** The optimisations were undone one at a time, starting from the normal month and working back to the A2 design:
+
+| Step | What was changed | Monthly total | Saving |
+|---|---|---:|---|
+| Start | Final design, normal month | $268.85 + $668 upfront | — |
+| O5 | Logs kept 90 days | $268.85 | Cannot be shown: the calculator always assumes 1-month retention |
+| O3 | Reserved → On-Demand | $361.41, no upfront | **$442.72 / year** (12-month totals $3,894 → $4,337) |
+| O2 | `t4g.medium` → `m6g.large` | $535.15 | **$173.74 / month** |
+| O1 | 0 → 2 NAT gateways | **$602.61** (= A2 design) | **$67.46 / month = $809.52 / year** |
+| O4 | Lifecycle → all S3 Standard | S3 line $42.14 → $194.97 | **$152.83 / month** |
+
+**O1 NAT gateways back**
+
+![O1 NAT gateways back](../evidence/calculator/O1-remove-nat.png)
+
+**O2 bigger database**
+
+![O2 bigger database](../evidence/calculator/O2-right-size.png)
+
+**O3 On-Demand**
+
+![O3 On-Demand](../evidence/calculator/O3-reserved.png)
+
+**O4 all S3 Standard**
+
+![O4 all S3 Standard](../evidence/calculator/O4-s3-standard.png)
+
+*Note on O1:* the calculator does not allow 0 "regional NAT gateways". The A2 design's 2 NAT gateways were therefore entered as 1 standard + 1 regional gateway in 1 AZ. They are billed at the same hourly price, so the total is the same.
+
+---
+
+## 9. Feasibility verdict
 
 | Requirement | Target | Evidence | Result |
 |---|---|---|---|
-| **Budget** | ≤ $1,000 / month, yearly average | $359.19 average. Even the unoptimised A2 design is $613.31. The exam month is $522.74. | ✅ **Meets.** 64 % headroom |
-| **Peak load** | 3,000 students start within 5 min | Load test before: 68.5 % success (WAF per-IP limit blocked 11,762 requests). After the fix (per-student WAF limit + API concurrency cap 40, still `db.t4g.micro`): **100 % of 47,273 requests, p95 885 ms, 0 throttles, DB connections 28**. Lambda quota 1,000. | ✅ **Meets** (re-tested 2026-11-20) |
-| **RPO 5 min** | ≤ 5 min of answers lost | AZ loss: 0 (FT1, synchronous standby). Corruption: **154 s** (FT2, PITR; worst of 3 readings 308 s, covered by client-side autosave). Files: 0 (FT4, versioning). Queues: 0 (FT5). | ✅ Meets |
-| **RTO 1 h** | ≤ 60 min | AZ loss **66 s** (FT1). PITR **about 22 min** (FT2: 17 min restore + 5 min swap). Partial AZ network loss **120 s**, self-healed (FT3) · worker outage drained in **96 s** (FT5) · deleted file **73 s** (FT4). | ✅ Meets for AZ and data failures |
-| Survive loss of one AZ | yes | FT1 + FT3 | ✅ |
-| Region loss | (not required) | FT6 tabletop: RTO 2–4 h with DR copy | ⚠️ **Accepted risk** |
-| Files kept 5 years | yes | Lifecycle expires at 1,825 days. Monthly DB backups kept 1,825 days. | ✅ |
+| **Budget** | ≤ $1,000 a month | $359 average, $523 in exam months | 64 % headroom |
+| **Exam peak** | 3,000 starts in 5 min | Load test: 68.5 % success before the fix, **100 %** after (47,273 requests, p95 885 ms) | |
+| **RPO** | ≤ 5 min | AZ loss 0 s (FT1) · data corruption 154 s (FT2) · files 0 s (FT4) · queues 0 s (FT5) | |
+| **RTO** | ≤ 1 h | AZ loss 66 s (FT1) · restore ≈ 22 min (FT2) · AZ network 120 s (FT3) · file 73 s (FT4) · worker 96 s (FT5) | |
+| Survive one AZ | yes | FT1, FT3 | |
+| Keep files 5 years | yes | S3 lifecycle deletes after 1,825 days; monthly backups kept 1,825 days | |
+| Lose the whole Region | not required | FT6 tabletop: RTO 2–4 h with the Mumbai backup copy | accepted risk |
 
-**Verdict: FEASIBLE.**
-- The platform costs about **$4,310 a year (≈ $0.54 per student)**, about a third of the budget.
-- It meets RPO and RTO for every AZ-level and data-level failure.
-- It handles the exam peak: the re-test served 3,000 students starting within 5 minutes at 100 % success, after fixing the WAF per-IP limit and capping database connections. Production exam months add RDS Proxy and `db.t4g.large` for headroom.
-- The remaining risk is the loss of the whole Singapore Region. It is accepted, with optional cross-Region backups to Mumbai at about $3–5 a month.
+**Verdict: FEASIBLE.** The platform costs about **$4,310 a year (≈ $0.54 per student)**, about a third of the budget. It meets the RPO and RTO for every AZ-level and data-level failure, and it handles the exam peak at 100 % success. The remaining risk, losing the whole Singapore Region, is accepted, with an optional backup copy to Mumbai for about $3–5 a month.
 
-## 7. Optimisations and their savings (Task 3)
+---
 
-Each saving is the difference between two runs of `scripts/cost-model.mjs` and between two calculator estimates.
+## 10. What the testing itself cost
 
-| # | Optimisation | Before | After | **Annual saving** |
-|---|---|---|---|---:|
-| O1 | Remove both NAT gateways and use VPC endpoints | 2 NAT × $0.059/h + $0.059/GB | + Secrets Manager endpoint ($18.98/month) | **$809.46** |
-| O2 | Seasonal right-sizing: `t4g.medium` normal / `t4g.large` exam, instead of `m6g.large` all year | $321.93/month | $148.19 / $296.38 | **$1,788.50** |
-| O3 | 1-year partial-upfront RI on `db.t4g.medium` Multi-AZ | On-Demand | RI (size-flexible) | **$442.80** |
-| O4 | S3 lifecycle to IA → Glacier IR → Deep Archive (steady state) | All S3 Standard, $180/month | $26.50/month | **$1,837.76** |
-| O5 | CloudWatch Logs retention 90 → 30 days | 90 d | 30 d | $8.64 (small; ingestion is the real cost) |
-| **Total** | A2 design in Singapore ($7,359.68/yr) → final ($4,310.28/yr) | | | **$3,049 (−42 %)** |
+The class account has no Billing access, so the cost of the test stack was calculated from how long it ran.
 
-O4 was already in A2, so it is shown as a saving against the naive option. The A2 → A3 total counts O1 + O2 + O3 + O5 together.
-
-**Further options, not applied:**
-- CloudFront flat-rate or free tier: about −$350 a year.
-- DynamoDB for autosave: about −$1,500 a year or more, but needs a code rewrite.
-- Provisioned concurrency only around exam starts: adds cost, reduces latency.
-
-## 8. What the testing itself cost (estimated, because there is no Billing access)
-
-The shared class account gives students no **Billing / Cost Explorer** access, so the cost of the test stack is calculated from its running time and the same Singapore unit prices as §2.
-
-| Item (test configuration: `db.t4g.micro` Multi-AZ, no NAT, no Proxy) | Unit price | Per hour |
-|---|---|---:|
-| RDS `db.t4g.micro` Multi-AZ | $0.051 / h | $0.0510 |
-| RDS gp3 storage, 20 GB Multi-AZ | $0.276 / GB-month | $0.0076 |
-| VPC interface endpoints (SQS + Secrets Manager) × 2 AZ | $0.013 / h each | $0.0520 |
-| WAF web ACL + 4 rules | $9 / month | $0.0123 |
-| KMS key, secret, dashboard, alarms over the free tier | about $5 / month | $0.0068 |
-| **Fixed running cost** | | **≈ $0.13 / h (≈ $3.10 / day)** |
-
-| Usage during the tests | Quantity | Cost |
-|---|---|---:|
-| API Gateway + WAF + CloudFront requests (2 load tests + smoke tests) | about 95,000 requests | ≈ $0.30 |
-| Lambda (arm64) | about 95,000 invocations | ≈ $0.05 |
-| FT2 restored instance (`db.t4g.micro` single-AZ, about 35 min) | $0.025 / h | ≈ $0.02 |
-| CloudWatch Logs ingestion | < 0.5 GB | ≈ $0.35 |
-| **Usage total** | | **≈ $0.70** |
-
-**Stack lifetime:**
-- Created 2026-11-20 at 09:46 UTC (RDS `InstanceCreateTime`).
-- Destroyed ☐ (time of the green Tear down run).
-- Total ☐ h, so the **estimated test cost is ☐ h × $0.13 + $0.70 ≈ $☐**.
-
-That is about 1 % of one month of the production estimate. The production design costs more mainly because of the larger exam-month database, RDS Proxy and 5 years of stored files.
+| | |
+|---|---|
+| Test setup | `db.t4g.micro` Multi-AZ, no NAT, no RDS Proxy |
+| Running cost | ≈ **$0.13 an hour** (database $0.051, VPC endpoints $0.052, WAF $0.012, storage and other $0.015) |
+| Usage cost | ≈ **$0.70** (about 95,000 test requests, Lambda, logs, the FT2 restored database) |
+| Lifetime | Created 2026-11-20 09:46 UTC, destroyed 15:12 UTC = **5.4 hours** |
+| **Total** | 5.4 h × $0.13 + $0.70 ≈ **$1.41** |
